@@ -6,8 +6,9 @@
 // Before you start, please read: https://arxiv.org/pdf/1105.1186.pdf
 // Make sure you have read through the header file as well
 #include "rrt/rrt.h"
-#include <random>
+//#include "rrt/pose_2d.hpp"
 
+#include <random>
 
 // Destructor of the RRT class
 RRT::~RRT()
@@ -24,25 +25,25 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     std::string pose_topic, scan_topic;
     nh_.getParam("pose_topic", pose_topic);
     nh_.getParam("scan_topic", scan_topic);
-    scan_topic="/scan";
-    pose_topic="/pose";
+    scan_topic = "/scan";
+    pose_topic = "/gt_pose";
     // ROS publishers
     // TODO: create publishers for the the drive topic, and other topics you might need
     vis_pub = nh_.advertise<visualization_msgs::Marker>("rrt_marker", 0);
-    tree_pub_=nh_.advertise<std_msgs::Float64MultiArray>("/tree", 0);
+    tree_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/tree", 0);
     // ROS subscribers
     // TODO: create subscribers as you need
     pf_sub_ = nh_.subscribe(pose_topic, 10, &RRT::pf_callback, this);
     scan_sub_ = nh_.subscribe(scan_topic, 10, &RRT::scan_callback, this);
-    ROS_INFO_STREAM("Scan topic"<<scan_topic.c_str());
+    map_sub = nh.subscribe("/map", 1, &RRT::map_callback, this);
+
+    //ROS_INFO_STREAM("Scan topic"<<scan_topic.c_str());
     // TODO: create a occupancy grid
-    gen= std::mt19937(123);
-    x_dist=std::uniform_real_distribution<double>(-15.0,15.0);
-    y_dist=std::uniform_real_distribution<double>(-15.0,15.0);
-    
-    
+    gen = std::mt19937(123);
+    x_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
+    y_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
 
-
+    
     //ROS_INFO(pose_topic);
     //ROS_INFO(scan_topic);
     ROS_INFO("Created new RRT Object.");
@@ -52,31 +53,31 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     q_goal.push_back(20);
     q_goal.push_back(20);
 
-    step_length=0.1;
-    
-    
+    step_length = 0.1;
+
     Node start;
-    start.x=0;
-    start.y=0;
-    start.cost=1;
-    start.is_root=true;
+    start.x = 0;
+    start.y = 0;
+    start.cost = 1;
+    start.is_root = true;
     tree.push_back(start);
-    
+
     int counter = 0;
-    while(counter<5000){
-        std::vector<double> sampled_point=sample();
-        ROS_INFO_STREAM(sampled_point[0]);
-        int near=nearest(tree,sampled_point);
-        Node x_new = steer(near,tree[near],sampled_point);
-        tree.push_back(x_new);
+    while (counter < 4000)
+    {
+        std::vector<double> sampled_point = sample();
+        //ROS_INFO_STREAM(sampled_point[0]);
+        int near = nearest(tree, sampled_point);
+        Node x_new = steer(near, tree[near], sampled_point);
+        if(!check_collision(tree[near],x_new)){
+            tree.push_back(x_new);
+        }
         counter++;
     }
-
 }
 
 void RRT::start_visualization()
 {
-
 
     // TODO: fill in the RRT main loop
     /*Node start;
@@ -101,9 +102,6 @@ void RRT::start_visualization()
     three.parent=0;
     tree.push_back(three);
     pub_tree(tree);*/
-
-
-   
 }
 
 void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
@@ -128,6 +126,10 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     //    pose_msg (*PoseStamped): pointer to the incoming pose message
     // Returns:
     //
+    //double distance_to_nearest = distance_transform(pose_msg->pose.position.x, pose_msg->pose.position.y);
+    //ROS_INFO_STREAM("Distance: " << distance_to_nearest);
+    //double distance_wall = trace_ray(pose_msg->pose.position.x, pose_msg->pose.position.y,0);
+    //ROS_INFO_STREAM("Distance: " << distance_wall);
 
     // tree as std::vector
     std::vector<Node> tree;
@@ -146,13 +148,9 @@ std::vector<double> RRT::sample()
     // Returns:
     //     sampled_point (std::vector<double>): the sampled point in free space
 
-
     std::vector<double> sampled_point;
     sampled_point.push_back(x_dist(gen));
     sampled_point.push_back(y_dist(gen));
-
-
-
 
     // TODO: fill in this method
     // look up the documentation on how to use std::mt19937 devices with a distribution
@@ -170,32 +168,31 @@ int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
     // Returns:
     //     nearest_node (int): index of nearest node on the tree
     int nearest_node = 0;
-    double nearest_distance=9999999;
-    for (int i=0; i < tree.size(); i++) {
-       
+    double nearest_distance = 9999999;
+    for (int i = 0; i < tree.size(); i++)
+    {
 
-       double distance = distanceNodePoint(tree[i],sampled_point);
-       if(distance<nearest_distance){
-           nearest_node=i;
-           nearest_distance=distance;
-       }
-
+        double distance = distanceNodePoint(tree[i], sampled_point);
+        if (distance < nearest_distance)
+        {
+            nearest_node = i;
+            nearest_distance = distance;
+        }
     }
-    
-    
+
     // TODO: fill in this method
 
     return nearest_node;
 }
-double RRT::distanceNodePoint(Node node,std::vector<double> &point){
-    double xdif = point[0]-node.x;
-    double ydif = point[1]-node.y;
+double RRT::distanceNodePoint(Node node, std::vector<double> &point)
+{
+    double xdif = point[0] - node.x;
+    double ydif = point[1] - node.y;
 
-    return sqrt(xdif*xdif+ydif*ydif);
+    return sqrt(xdif * xdif + ydif * ydif);
 }
 
-
-Node RRT::steer(int parent,Node &nearest_node, std::vector<double> &sampled_point)
+Node RRT::steer(int parent, Node &nearest_node, std::vector<double> &sampled_point)
 {
     // The function steer:(x,y)->z returns a point such that z is “closer”
     // to y than x is. The point z returned by the function steer will be
@@ -209,26 +206,25 @@ Node RRT::steer(int parent,Node &nearest_node, std::vector<double> &sampled_poin
     //    sampled_point (std::vector<double>): the sampled point in free space
     // Returns:
     //    new_node (Node): new node created from steering
-    
+
     Node new_node;
-    new_node.parent=parent;
-    new_node.is_root=false;
-    new_node.cost=1;
+    new_node.parent = parent;
+    new_node.is_root = false;
+    new_node.cost = 1;
 
+    double distance = distanceNodePoint(nearest_node, sampled_point);
+    //ROS_INFO_STREAM("Distance"<<distance);
+    if (distance <= step_length)
+    {
 
-    double distance = distanceNodePoint(nearest_node,sampled_point);
-    ROS_INFO_STREAM("Distance"<<distance);
-    if(distance<=step_length){
-    
-        new_node.x=sampled_point[0];
-        new_node.y=sampled_point[1];
-    
-    
-    }else{
-        new_node.x=nearest_node.x+(sampled_point[0]-nearest_node.x)*step_length/distance;
-        new_node.y=nearest_node.y+(sampled_point[1]-nearest_node.y)*step_length/distance;
-        ROS_INFO("step");
-
+        new_node.x = sampled_point[0];
+        new_node.y = sampled_point[1];
+    }
+    else
+    {
+        new_node.x = nearest_node.x + (sampled_point[0] - nearest_node.x) * step_length / distance;
+        new_node.y = nearest_node.y + (sampled_point[1] - nearest_node.y) * step_length / distance;
+        //ROS_INFO("step");
     }
     // TODO: fill in this method
 
@@ -246,6 +242,13 @@ bool RRT::check_collision(Node &nearest_node, Node &new_node)
     //    collision (bool): true if in collision, false otherwise
 
     bool collision = false;
+    if(distance_transform(new_node.x,new_node.y)==0.0){
+       
+        ROS_INFO_STREAM("collision");
+    }else{
+        ROS_INFO_STREAM("no collision");
+         collision =true;
+    }
     // TODO: fill in this method
 
     return collision;
@@ -333,18 +336,23 @@ std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
     return neighborhood;
 }
 // For visualization
-void RRT::pub_tree(std::vector<Node> &tree) {
+void RRT::pub_tree(std::vector<Node> &tree)
+{
     // publish the current tree as a float array topic
     // published as [n1.x, n1.y, n1.parent.x, n1.parent.y, ......]
     int tree_length = tree.size();
     std_msgs::Float64MultiArray tree_msg;
-    for (int i=1; i<tree_length; i++) {
+    for (int i = 1; i < tree_length; i++)
+    {
         double x = tree[i].x, y = tree[i].y;
         double px, py;
-        if (tree[i].parent == -1) {
+        if (tree[i].parent == -1)
+        {
             px = 0.0;
             py = 0.0;
-        } else {
+        }
+        else
+        {
             px = tree[tree[i].parent].x, py = tree[tree[i].parent].y;
         }
         tree_msg.data.push_back(x);
@@ -353,4 +361,135 @@ void RRT::pub_tree(std::vector<Node> &tree) {
         tree_msg.data.push_back(py);
     }
     tree_pub_.publish(tree_msg);
+}
+void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
+{
+    // Fetch the map parameters
+    height = msg.info.height;
+    width = msg.info.width;
+    resolution = msg.info.resolution;
+    // Convert the ROS origin to a pose
+
+    origin.x = msg.info.origin.position.x;
+    origin.y = msg.info.origin.position.y;
+    geometry_msgs::Quaternion q = msg.info.origin.orientation;
+    tf2::Quaternion quat(q.x, q.y, q.z, q.w);
+    origin.theta = tf2::impl::getYaw(quat);
+
+    // Convert the map to probability values
+    std::vector<double> map(msg.data.size());
+    for (size_t i = 0; i < height * width; i++)
+    {
+        if (msg.data[i] > 100 or msg.data[i] < 0)
+        {
+            map[i] = 0.5; // Unknown
+        }
+        else
+        {
+            map[i] = msg.data[i] / 100.;
+        }
+    }
+    // Assign parameters
+
+    origin_c = std::cos(origin.theta);
+    origin_s = std::sin(origin.theta);
+    double free_threshold = 0.8;
+    // Threshold the map
+    dt = std::vector<double>(map.size());
+    for (size_t i = 0; i < map.size(); i++)
+    {
+        if (0 <= map[i] and map[i] <= free_threshold)
+        {
+            dt[i] = 99999; // Free
+        }
+        else
+        {
+            dt[i] = 0; // Occupied
+        }
+    }
+    //DistanceTransform::distance_2d(dt, width, height, resolution);
+
+    /*// Send the map to the scanner
+            scan_simulator.set_map(
+                map,
+                height,
+                width,
+                resolution,
+                origin,
+                map_free_threshold);
+            map_exists = true;*/
+}
+double RRT::trace_ray(double x, double y, double theta_index) const
+{
+    // Add 0.5 to make this operation round rather than floor
+    int theta_index_ = theta_index + 0.5;
+    //double s = sines[theta_index_];
+    //double c = cosines[theta_index_];
+    double s = std::sin(theta_index_);
+    double c = std::cos(theta_index_);
+
+    // Initialize the distance to the nearest obstacle
+    double distance_to_nearest = distance_transform(x, y);
+    double total_distance = distance_to_nearest;
+    double ray_tracing_epsilon=0.0001;
+    while (distance_to_nearest > ray_tracing_epsilon)
+    {
+        // Move in the direction of the ray
+        // by distance_to_nearest
+        x += distance_to_nearest * c;
+        y += distance_to_nearest * s;
+
+        // Compute the nearest distance at that point
+        distance_to_nearest = distance_transform(x, y);
+        total_distance += distance_to_nearest;
+    }
+
+    return total_distance;
+}
+
+double RRT::distance_transform(double x, double y) const
+{
+    // Convert the pose to a grid cell
+    int cell = xy_to_cell(x, y);
+    if (cell < 0)
+        return 0;
+
+    return dt[cell];
+}
+
+void RRT::xy_to_row_col(double x, double y, int *row, int *col) const
+{
+    // Translate the state by the origin
+    double x_trans = x - origin.x;
+    double y_trans = y - origin.y;
+
+    // Rotate the state into the map
+    double x_rot = x_trans * origin_c + y_trans * origin_s;
+    double y_rot = -x_trans * origin_s + y_trans * origin_c;
+
+    // Clip the state to be a cell
+    if (x_rot < 0 or x_rot >= width * resolution or
+        y_rot < 0 or y_rot >= height * resolution)
+    {
+        *col = -1;
+        *row = -1;
+    }
+    else
+    {
+        // Discretize the state into row and column
+        *col = std::floor(x_rot / resolution);
+        *row = std::floor(y_rot / resolution);
+    }
+}
+
+int RRT::row_col_to_cell(int row, int col) const
+{
+    return row * width + col;
+}
+
+int RRT::xy_to_cell(double x, double y) const
+{
+    int row, col;
+    xy_to_row_col(x, y, &row, &col);
+    return row_col_to_cell(row, col);
 }

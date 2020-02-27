@@ -18,7 +18,11 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <tf/transform_listener.h>
-
+#include <tf2/impl/utils.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+//#include "rrt/pose_2d.hpp"
+#include "rrt/distance_transform.hpp"
 // standard
 #include <math.h>
 #include <vector>
@@ -45,11 +49,18 @@ typedef struct Node {
     bool is_root = false;
 } Node;
 
+struct Pose2D {
+    double x;
+    double y;
+    double theta;
+};
 
 class RRT {
 public:
     RRT(ros::NodeHandle &nh);
     virtual ~RRT();
+    std::vector<double> sines;
+    std::vector<double> cosines;
 private:
     ros::NodeHandle nh_;
 
@@ -60,6 +71,8 @@ private:
 
     ros::Subscriber pf_sub_;
     ros::Subscriber scan_sub_;
+    ros::Subscriber map_sub;
+
 
     // tf stuff
     tf::TransformListener listener;
@@ -77,6 +90,15 @@ private:
     std::vector<double>  q_goal;
     double step_length;
     
+
+
+    // The distance transform
+    double resolution;
+    size_t width, height;
+    Pose2D origin;
+    std::vector<double> dt;
+    double origin_c;
+    double origin_s;
 
 
     // callbacks
@@ -99,6 +121,14 @@ private:
     double line_cost(Node &n1, Node &n2);
     std::vector<int> near(std::vector<Node> &tree, Node &node);
     void pub_tree(std::vector<Node> &tree);
+    void map_callback(const nav_msgs::OccupancyGrid & msg);
+    void xy_to_row_col(double x, double y, int *row, int *col) const;
+    int row_col_to_cell(int row, int col) const;
+    int xy_to_cell(double x, double y) const;
+    double distance_transform(double x, double y) const;
+    double trace_ray(double x, double y, double theta_index) const;
+
+
 
 };
 
