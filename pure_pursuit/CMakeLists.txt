@@ -107,10 +107,11 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES pure_pursuit
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs visualization_msgs
-#  DEPENDS system_lib
+# INCLUDE_DIRS include
+  INCLUDE_DIRS src
+  LIBRARIES pure_pursuit
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs visualization_msgs
+  DEPENDS system_lib
 )
 
 ###########
@@ -138,6 +139,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/pure_pursuit_node.cpp)
+add_executable(pure_pursuit_node src/pure_pursuit.cpp)
+add_dependencies(pure_pursuit_node ${f110_rrt_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,6 +157,9 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
+target_link_libraries(pure_pursuit_node
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############

@@ -109,6 +109,13 @@ public:
         n.getParam("random_walker_mux_idx", random_walker_mux_idx);
         add_channel(rand_drive_topic, drive_topic, random_walker_mux_idx);
 
+        //Pure Pursuit
+        int pp_mux_idx;
+        std::string pp_drive_topic;
+        n.getParam("pp_drive_topic", pp_drive_topic);
+        n.getParam("pp_mux_idx", pp_mux_idx);
+        add_channel(pp_drive_topic, drive_topic, pp_mux_idx);
+
         // Channel for emergency braking
         int brake_mux_idx;
         std::string brake_drive_topic;

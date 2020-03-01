@@ -111,7 +111,7 @@ void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
     
 
 }
-
+//not being called currently
 void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 {
     // The pose callback when subscribed to particle filter's inferred pose

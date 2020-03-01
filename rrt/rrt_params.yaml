@@ -8,7 +8,7 @@ pose_topic: "/pose"
 path_topic: "/path"
 
 collision_accuracy: 0.1
-rrt_steps: 3500
+rrt_steps: 6000
 step_length: 0.3
 goal_threshold: 0.5
 # Topics that RRT publishes to
