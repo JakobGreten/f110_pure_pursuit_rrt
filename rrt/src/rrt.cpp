@@ -22,20 +22,29 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 {
 
     // TODO: Load parameters from yaml file, you could add your own parameters to the rrt_params.yaml file
-    std::string pose_topic, scan_topic;
-    nh_.getParam("pose_topic", pose_topic);
-    nh_.getParam("scan_topic", scan_topic);
-    scan_topic = "/scan";
-    pose_topic = "/gt_pose";
+    std::string pose_topic, scan_topic, path_topic;
+    nh_.getParam("rrt/pose_topic", pose_topic);
+    nh_.getParam("rrt/scan_topic", scan_topic);
+    nh_.getParam("rrt/path_topic", path_topic);
+
+    nh_.getParam("rrt/rrt_steps", rrt_steps);
+    nh_.getParam("rrt/collision_accuracy", collision_accuracy);
+    nh_.getParam("rrt/step_length", step_length);
+    nh_.getParam("rrt/goal_threshold", goal_threshold);
+
+    ROS_INFO_STREAM("rrt_steps" << rrt_steps << " pose topic " << pose_topic);
     // ROS publishers
     // TODO: create publishers for the the drive topic, and other topics you might need
     vis_pub = nh_.advertise<visualization_msgs::Marker>("rrt_marker", 0);
     tree_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/tree", 0);
+    path_pub_ = nh_.advertise<std_msgs::Float64MultiArray>(path_topic, 10);
     // ROS subscribers
     // TODO: create subscribers as you need
     pf_sub_ = nh_.subscribe(pose_topic, 10, &RRT::pf_callback, this);
     scan_sub_ = nh_.subscribe(scan_topic, 10, &RRT::scan_callback, this);
-    map_sub = nh.subscribe("/map", 1, &RRT::map_callback, this);
+    map_sub = nh_.subscribe("/map", 1, &RRT::map_callback, this);
+    click_sub = nh_.subscribe("/clicked_point", 1, &RRT::clicked_point_callback, this);
+    nav_goal_sub = nh_.subscribe("/move_base_simple/goal", 1, &RRT::nav_goal_callback, this);
 
     //ROS_INFO_STREAM("Scan topic"<<scan_topic.c_str());
     // TODO: create a occupancy grid
@@ -43,17 +52,16 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     x_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
     y_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
 
-    
     //ROS_INFO(pose_topic);
     //ROS_INFO(scan_topic);
+    rrt_tree_build = false;
     ROS_INFO("Created new RRT Object.");
+}
 
-    start_visualization();
-
-    q_goal.push_back(20);
-    q_goal.push_back(20);
-
-    step_length = 0.1;
+void RRT::rrt_loop()
+{
+    q_goal.push_back(8);
+    q_goal.push_back(0);
 
     Node start;
     start.x = 0;
@@ -63,59 +71,45 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     tree.push_back(start);
 
     int counter = 0;
-    while (counter < 4000)
+    while (counter < rrt_steps)
     {
         std::vector<double> sampled_point = sample();
         //ROS_INFO_STREAM(sampled_point[0]);
         int near = nearest(tree, sampled_point);
         Node x_new = steer(near, tree[near], sampled_point);
-        if(!check_collision(tree[near],x_new)){
+        if (!check_collision(tree[near], x_new))
+        {
             tree.push_back(x_new);
+        }
+        if (is_goal(x_new))
+        {
+            ROS_INFO_STREAM("Goal found");
+            path = find_path(tree, x_new);
+            break;
         }
         counter++;
     }
-}
-
-void RRT::start_visualization()
-{
-
-    // TODO: fill in the RRT main loop
-    /*Node start;
-    start.x=0;
-    start.y=0;
-    start.cost=1;
-    start.is_root=true;
-    tree.push_back(start);
-    Node two;
-    two.x=7;
-    two.y=5;
-    two.cost=1;
-    two.is_root=false;
-    two.parent=0;
-    tree.push_back(two);
-
-    Node three;
-    three.x=20;
-    three.y=8;
-    three.cost=1;
-    three.is_root=false;
-    three.parent=0;
-    tree.push_back(three);
-    pub_tree(tree);*/
+    rrt_tree_build = true;
 }
 
 void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 {
-    pub_tree(tree);
-    //ROS_INFO("scan");
-
     // The scan callback, update your occupancy grid here
     // Args:
     //    scan_msg (*LaserScan): pointer to the incoming scan message
     // Returns:
-    //
+    std_msgs::Float64MultiArray path_msg;
+    for (int i = 0; i < path.size(); i++)
+    {
+        
+        path_msg.data.push_back(path[i].x);
+        path_msg.data.push_back(path[i].y);
+    }
+    path_pub_.publish(path_msg);
+    pub_tree(tree);
 
-    // TODO: update your occupancy grid
+    
+
 }
 
 void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
@@ -138,6 +132,27 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 
     // path found as Path message
 }
+void RRT::clicked_point_callback(const geometry_msgs::PointStamped &pose_msg)
+{
+
+    double distance_to_nearest = distance_transform(pose_msg.point.x, pose_msg.point.y);
+    ROS_INFO_STREAM("Distance: " << distance_to_nearest);
+    //double distance_wall = trace_ray(pose_msg->pose.position.x, pose_msg->pose.position.y,0);
+    //ROS_INFO_STREAM("Distance: " << distance_wall);
+}
+void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
+{
+    double x = pose_msg.pose.position.x;
+    double y = pose_msg.pose.position.y;
+    q_goal.clear();
+    q_goal.push_back(x);
+    q_goal.push_back(y);
+    ROS_INFO_STREAM("New nav goal set to X: " << x<<" Y: "<<y);
+    tree.clear();
+    path.clear();
+    rrt_loop();
+    
+}
 
 std::vector<double> RRT::sample()
 {
@@ -151,10 +166,6 @@ std::vector<double> RRT::sample()
     std::vector<double> sampled_point;
     sampled_point.push_back(x_dist(gen));
     sampled_point.push_back(y_dist(gen));
-
-    // TODO: fill in this method
-    // look up the documentation on how to use std::mt19937 devices with a distribution
-    // the generator and the distribution is created for you (check the header file)
 
     return sampled_point;
 }
@@ -179,9 +190,6 @@ int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
             nearest_distance = distance;
         }
     }
-
-    // TODO: fill in this method
-
     return nearest_node;
 }
 double RRT::distanceNodePoint(Node node, std::vector<double> &point)
@@ -210,7 +218,7 @@ Node RRT::steer(int parent, Node &nearest_node, std::vector<double> &sampled_poi
     Node new_node;
     new_node.parent = parent;
     new_node.is_root = false;
-    new_node.cost = 1;
+    new_node.cost = 0.6;
 
     double distance = distanceNodePoint(nearest_node, sampled_point);
     //ROS_INFO_STREAM("Distance"<<distance);
@@ -241,20 +249,21 @@ bool RRT::check_collision(Node &nearest_node, Node &new_node)
     // Returns:
     //    collision (bool): true if in collision, false otherwise
 
-    bool collision = false;
-    if(distance_transform(new_node.x,new_node.y)==0.0){
-       
-        ROS_INFO_STREAM("collision");
-    }else{
-        ROS_INFO_STREAM("no collision");
-         collision =true;
-    }
-    // TODO: fill in this method
+    for (double i = collision_accuracy; i <= 1; i += collision_accuracy)
+    {
 
-    return collision;
+        double x = nearest_node.x + (new_node.x - nearest_node.x) * i;
+        double y = nearest_node.y + (new_node.y - nearest_node.y) * i;
+        if (distance_transform(x, y) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-bool RRT::is_goal(Node &latest_added_node, double goal_x, double goal_y)
+bool RRT::is_goal(Node &latest_added_node)
 {
     // This method checks if the latest node added to the tree is close
     // enough (defined by goal_threshold) to the goal so we can terminate
@@ -265,8 +274,13 @@ bool RRT::is_goal(Node &latest_added_node, double goal_x, double goal_y)
     //   goal_y (double): y coordinate of the current goal
     // Returns:
     //   close_enough (bool): true if node close enough to the goal
-
     bool close_enough = false;
+
+    double dist_goal = distanceNodePoint(latest_added_node, q_goal);
+    if (dist_goal < goal_threshold)
+    {
+        close_enough = true;
+    }
     // TODO: fill in this method
 
     return close_enough;
@@ -284,7 +298,13 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
     //      of the nodes traversed as the found path
 
     std::vector<Node> found_path;
-    // TODO: fill in this method
+    Node n = latest_added_node;
+    while (!n.is_root)
+    {
+        found_path.push_back(n);
+        n = tree[n.parent];
+    }
+    found_path.push_back(n);
 
     return found_path;
 }
@@ -418,7 +438,14 @@ void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
                 origin,
                 map_free_threshold);
             map_exists = true;*/
+
+    ROS_INFO_STREAM("Map initialized");
+    if (!rrt_tree_build)
+    {
+        rrt_loop();
+    }
 }
+
 double RRT::trace_ray(double x, double y, double theta_index) const
 {
     // Add 0.5 to make this operation round rather than floor
@@ -431,7 +458,7 @@ double RRT::trace_ray(double x, double y, double theta_index) const
     // Initialize the distance to the nearest obstacle
     double distance_to_nearest = distance_transform(x, y);
     double total_distance = distance_to_nearest;
-    double ray_tracing_epsilon=0.0001;
+    double ray_tracing_epsilon = 0.0001;
     while (distance_to_nearest > ray_tracing_epsilon)
     {
         // Move in the direction of the ray

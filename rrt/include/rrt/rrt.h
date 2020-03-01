@@ -16,6 +16,7 @@
 #include <geometry_msgs/Point.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/Path.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <tf/transform_listener.h>
 #include <tf2/impl/utils.h>
@@ -35,32 +36,34 @@
 #include <boost/algorithm/string.hpp>
 #include <random>
 
-
 #include <visualization_msgs/Marker.h>
-
 
 // Struct defining the Node object in the RRT tree.
 // More fields could be added to thiis struct if more info needed.
 // You can choose to use this or not
-typedef struct Node {
+typedef struct Node
+{
     double x, y;
     double cost; // only used for RRT*
-    int parent; // index of parent node in the tree vector
+    int parent;  // index of parent node in the tree vector
     bool is_root = false;
 } Node;
 
-struct Pose2D {
+struct Pose2D
+{
     double x;
     double y;
     double theta;
 };
 
-class RRT {
+class RRT
+{
 public:
     RRT(ros::NodeHandle &nh);
     virtual ~RRT();
     std::vector<double> sines;
     std::vector<double> cosines;
+
 private:
     ros::NodeHandle nh_;
 
@@ -68,11 +71,13 @@ private:
     // TODO: add the publishers and subscribers you need
     ros::Publisher vis_pub;
     ros::Publisher tree_pub_;
+    ros::Publisher path_pub_;
 
     ros::Subscriber pf_sub_;
     ros::Subscriber scan_sub_;
     ros::Subscriber map_sub;
-
+    ros::Subscriber click_sub;
+    ros::Subscriber nav_goal_sub;
 
     // tf stuff
     tf::TransformListener listener;
@@ -87,10 +92,13 @@ private:
     visualization_msgs::Marker points, line_strip, line_list;
 
     std::vector<Node> tree;
-    std::vector<double>  q_goal;
+    std::vector<Node> path;
+    std::vector<double> q_goal;
+    double goal_threshold;
     double step_length;
-    
-
+    int rrt_steps;
+    double collision_accuracy;
+    bool rrt_tree_build;
 
     // The distance transform
     double resolution;
@@ -100,35 +108,34 @@ private:
     double origin_c;
     double origin_s;
 
-
     // callbacks
     // where rrt actually happens
-    void pf_callback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
+    void pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg);
     // updates occupancy grid
-    void scan_callback(const sensor_msgs::LaserScan::ConstPtr& scan_msg);
-    double distanceNodePoint(Node node,std::vector<double> &point);
+    void scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg);
+    void clicked_point_callback(const geometry_msgs::PointStamped &pose_msg);
+    void nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg);
 
-    void start_visualization();
+
+    double distanceNodePoint(Node node, std::vector<double> &point);
+    void rrt_loop();
+
     // RRT methods
     std::vector<double> sample();
     int nearest(std::vector<Node> &tree, std::vector<double> &sampled_point);
-    Node steer(int parent,Node &nearest_node, std::vector<double> &sampled_point);
+    Node steer(int parent, Node &nearest_node, std::vector<double> &sampled_point);
     bool check_collision(Node &nearest_node, Node &new_node);
-    bool is_goal(Node &latest_added_node, double goal_x, double goal_y);
+    bool is_goal(Node &latest_added_node);
     std::vector<Node> find_path(std::vector<Node> &tree, Node &latest_added_node);
     // RRT* methods
     double cost(std::vector<Node> &tree, Node &node);
     double line_cost(Node &n1, Node &n2);
     std::vector<int> near(std::vector<Node> &tree, Node &node);
     void pub_tree(std::vector<Node> &tree);
-    void map_callback(const nav_msgs::OccupancyGrid & msg);
+    void map_callback(const nav_msgs::OccupancyGrid &msg);
     void xy_to_row_col(double x, double y, int *row, int *col) const;
     int row_col_to_cell(int row, int col) const;
     int xy_to_cell(double x, double y) const;
     double distance_transform(double x, double y) const;
     double trace_ray(double x, double y, double theta_index) const;
-
-
-
 };
-

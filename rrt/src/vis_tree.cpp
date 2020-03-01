@@ -5,8 +5,9 @@ RRTVIS::~RRTVIS() {
 }
 
 RRTVIS::RRTVIS(ros::NodeHandle &nh) : nh_(nh) {
-    std::string tree_topic, wpt_viz_topic;
+    std::string tree_topic, wpt_viz_topic,path_topic;
     nh_.getParam("tree_topic", tree_topic);
+    nh_.getParam("rrt/path_topic", path_topic);
     nh_.getParam("waypoint_viz_topic", wpt_viz_topic);
     tree_topic="/tree";
     wpt_viz_topic="/wpt_viz";
@@ -16,8 +17,7 @@ RRTVIS::RRTVIS(ros::NodeHandle &nh) : nh_(nh) {
     wpt_pub = nh_.advertise<visualization_msgs::Marker>("waypoint_marker", 10);
 
     tree_sub = nh_.subscribe(tree_topic, 10, &RRTVIS::tree_callback, this);
-    ROS_INFO("TOOOPICSD INIZIALJED");
-    // path_sub = nh_.subscribe("path", 10, &RRTVIS::path_callback, this);
+    path_sub = nh_.subscribe(path_topic, 10, &RRTVIS::path_callback, this);
     //wpt_sub = nh_.subscribe(wpt_viz_topic, 10, &RRTVIS::wpt_callback, this);
 }
 
