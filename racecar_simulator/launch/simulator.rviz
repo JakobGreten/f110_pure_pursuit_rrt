@@ -214,6 +214,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /pure_pursuit_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
     - Class: rviz/Image
       Enabled: false
       Image Topic: /converted_scan
