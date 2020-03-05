@@ -7,9 +7,9 @@
             },
             "includePath": [
                 "/opt/ros/kinetic/include/**",
-                "/home/s/Ba_Project/AutonomerUnfall/racecar_simulator/include/**",
-                "/home/s/Ba_Project/AutonomerUnfall/rrt/include/**",
-                "/home/s/Ba_Project/AutonomerUnfall/scan_matching_skeleton/include/**",
+                "/home/jakob/test_ws/src/f110-fall2019-skeletons/racecar_simulator/include/**",
+                "/home/jakob/test_ws/src/f110-fall2019-skeletons/rrt/include/**",
+                "/home/jakob/test_ws/src/f110-fall2019-skeletons/scan_matching_skeleton/include/**",
                 "/usr/include/**"
             ],
             "name": "ROS",
