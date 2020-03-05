@@ -5,6 +5,8 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <ackermann_msgs/AckermannDrive.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <cmath>
+#include <float.h>
 
 class PurePursuit
 {
@@ -18,7 +20,7 @@ private:
 
     ros::Publisher vis_pub;
 
-    double max_speed, max_steering_angle;
+    double max_speed, max_steering_angle, pose_x, pose_y;
     int sphere_marker_idx, cylinder_marker_idx;
     std::vector<double> path;
 
@@ -42,8 +44,15 @@ public:
 
     void pose_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     {
-        sphere_marker_idx=0;
-        cylinder_marker_idx=0;
+
+        sphere_marker_idx = 0;
+        cylinder_marker_idx = 0;
+
+        pose_x = pose_msg->pose.position.x;
+        pose_y = pose_msg->pose.position.y;
+
+        double l = 1.0;
+
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
@@ -60,7 +69,49 @@ public:
         //publishCylinder(-1,-1,0.2);
 
         // TODO: find the current waypoint to track using methods mentioned in lecture
+        double prev_node_x;
+        double prev_node_y;
+        double prev_diff_from_l;
 
+        double min_diff_x;
+        double min_diff_y;
+        double min_diff_from_l = DBL_MAX;
+
+        double track_node_x = NAN;
+        double track_node_y = NAN;
+
+        for (int i = 0; (i * 2) < path.size(); i++)
+        {
+            //ROS_INFO_STREAM("node" << i);
+            double node_x = path[path.size() - 2 * i - 2];
+            double node_y = path[path.size() - 2 * i - 1];
+            double distance_to_node = distance(pose_x, pose_y, node_x, node_y);
+            double diff_from_l = distance_to_node - l;
+
+            if (sgn(diff_from_l) != sgn(prev_diff_from_l))
+            {
+                track_node_x = node_x;
+                track_node_y = node_y;
+            }
+
+            if (diff_from_l < min_diff_from_l)
+            {
+                min_diff_from_l = diff_from_l;
+                min_diff_x = node_x;
+                min_diff_y = node_y;
+            }
+
+            prev_diff_from_l = diff_from_l;
+            prev_node_x = node_x;
+            prev_node_y = node_y;
+        }
+        if (isnanl(track_node_x))
+        {
+            ROS_INFO_STREAM("naaaaan");
+            track_node_x = min_diff_x;
+            track_node_y = min_diff_y;
+        }
+        publishSphere(track_node_x, track_node_y);
         // TODO: transform goal point to vehicle frame of reference
 
         // TODO: calculate curvature/steering angle
@@ -77,7 +128,7 @@ public:
         double ydif = ay - by;
         return sqrt(xdif * xdif + ydif * ydif);
     }
-    
+
     void publishSphere(double x, double y)
     {
         visualization_msgs::Marker marker;
@@ -98,7 +149,7 @@ public:
         marker.pose.orientation.y = 0.0;
         marker.pose.orientation.z = 0.0;
         marker.pose.orientation.w = 1.0;
-        double size=0.1;
+        double size = 0.2;
         marker.scale.x = size;
         marker.scale.y = size;
         marker.scale.z = size;
@@ -111,7 +162,7 @@ public:
         marker.lifetime = ros::Duration();
         vis_pub.publish(marker);
     }
-    void publishCylinder(double x, double y,double diameter)
+    void publishCylinder(double x, double y, double diameter)
     {
         visualization_msgs::Marker marker;
         marker.header.frame_id = "/map";
@@ -142,6 +193,11 @@ public:
 
         marker.lifetime = ros::Duration();
         vis_pub.publish(marker);
+    }
+    template <typename T>
+    int sgn(T val)
+    {
+        return (T(0) < val) - (val < T(0));
     }
 };
 int main(int argc, char **argv)

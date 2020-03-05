@@ -4,7 +4,7 @@
 #pose_topic: "some_pose_topic"
 #scan_topic: "some_scan_topic"
 scan_topic: "/scan"
-pose_topic: "/pose"
+pose_topic: "/gt_pose"
 path_topic: "/path"
 
 collision_accuracy: 0.1

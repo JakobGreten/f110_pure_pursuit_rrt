@@ -55,17 +55,21 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     //ROS_INFO(pose_topic);
     //ROS_INFO(scan_topic);
     rrt_tree_build = false;
+    //starting goal
+    q_goal.push_back(8);
+    q_goal.push_back(0);
+
     ROS_INFO("Created new RRT Object.");
 }
 
 void RRT::rrt_loop()
 {
-    q_goal.push_back(8);
-    q_goal.push_back(0);
+    //q_goal.push_back(8);
+    //q_goal.push_back(0);
 
     Node start;
-    start.x = 0;
-    start.y = 0;
+    start.x = pose_x;
+    start.y = pose_y;
     start.cost = 1;
     start.is_root = true;
     tree.push_back(start);
@@ -127,6 +131,8 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 
     // tree as std::vector
     std::vector<Node> tree;
+    pose_x=pose_msg->pose.position.x;
+    pose_y=pose_msg->pose.position.y;
 
     // TODO: fill in the RRT main loop
 
