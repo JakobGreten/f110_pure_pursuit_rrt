@@ -56,8 +56,8 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     //ROS_INFO(scan_topic);
     rrt_tree_build = false;
     //starting goal
-    q_goal.push_back(8);
-    q_goal.push_back(0);
+    q_goal.push_back(12.0);
+    q_goal.push_back(-0.8);
 
     ROS_INFO("Created new RRT Object.");
 }

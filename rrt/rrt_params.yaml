@@ -10,7 +10,7 @@ path_topic: "/path"
 collision_accuracy: 0.1
 rrt_steps: 6000
 step_length: 0.3
-goal_threshold: 0.5
+goal_threshold: 1.0
 # Topics that RRT publishes to
 # TODO: add your own
 # visualization

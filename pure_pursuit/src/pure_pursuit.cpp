@@ -7,6 +7,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <cmath>
 #include <float.h>
+#include <tf/tf.h>
 
 class PurePursuit
 {
@@ -51,24 +52,13 @@ public:
         pose_x = pose_msg->pose.position.x;
         pose_y = pose_msg->pose.position.y;
 
-        double l = 1.0;
+        double l = 1.4;
 
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
-        /// SPEED CALCULATION:
-        // set constant speed to be half of max speed
-        drive_msg.speed = max_speed / 2.0;
-        drive_msg.steering_angle = 0.0;
-        drive_st_msg.drive = drive_msg;
-        // publish AckermannDriveStamped message to drive topic
-        drive_pub.publish(drive_st_msg);
-        //publishCylinder(1,1,0.7);
-        //publishSphere(2,2);
-        //publishSphere(3,3);
-        //publishCylinder(-1,-1,0.2);
+        
 
-        // TODO: find the current waypoint to track using methods mentioned in lecture
         double prev_node_x;
         double prev_node_y;
         double prev_diff_from_l;
@@ -107,7 +97,6 @@ public:
         }
         if (isnanl(track_node_x))
         {
-            ROS_INFO_STREAM("naaaaan");
             track_node_x = min_diff_x;
             track_node_y = min_diff_y;
         }
@@ -115,6 +104,26 @@ public:
         // TODO: transform goal point to vehicle frame of reference
 
         // TODO: calculate curvature/steering angle
+        double vel = max_speed / 4.0;
+        
+        double theta = tf::getYaw(pose_msg->pose.orientation);
+        double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
+        if (alpha > M_PI)
+        {
+            alpha -= 2 * M_PI;
+        }
+        else if (alpha <= -M_PI)
+        {
+            alpha += 2 * M_PI;
+        }
+        double omega = 2 * vel * sin(alpha) / l;
+
+        //ROS_INFO_STREAM("Orientation: " << theta * 180 / M_PI << " Alpha: " << alpha * 180 / M_PI << " Omega: " << omega * 180 / M_PI);
+
+        drive_msg.speed = vel;
+        drive_msg.steering_angle = omega;
+        drive_st_msg.drive = drive_msg;
+        drive_pub.publish(drive_st_msg);
 
         // TODO: publish drive message, don't forget to limit the steering angle between -0.4189 and 0.4189 radians
     }
