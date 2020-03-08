@@ -532,7 +532,7 @@ public:
         std::vector<int> rc = coord_2_cell_rc(x, y);
         int ind = rc_2_ind(rc[0], rc[1]);
         added_obs.push_back(ind);
-        add_obs(ind);
+        //add_obs(ind);
     }
 
     void pose_callback(const geometry_msgs::PoseStamped & msg) {

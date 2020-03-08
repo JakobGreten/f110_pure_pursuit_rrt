@@ -49,15 +49,15 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     //ROS_INFO_STREAM("Scan topic"<<scan_topic.c_str());
     // TODO: create a occupancy grid
     gen = std::mt19937(123);
-    x_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
-    y_dist = std::uniform_real_distribution<double>(-15.0, 15.0);
+    x_dist = std::uniform_real_distribution<double>(-35.0, 35.0);
+    y_dist = std::uniform_real_distribution<double>(-35.0, 35.0);
 
     //ROS_INFO(pose_topic);
     //ROS_INFO(scan_topic);
     rrt_tree_build = false;
     //starting goal
-    q_goal.push_back(12.0);
-    q_goal.push_back(-0.8);
+    q_goal.push_back(22.0);
+    q_goal.push_back(-1.8);
 
     ROS_INFO("Created new RRT Object.");
 }
