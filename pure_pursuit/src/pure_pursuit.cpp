@@ -21,7 +21,7 @@ private:
 
     ros::Publisher vis_pub;
 
-    double max_speed, max_steering_angle, pose_x, pose_y, wheelbase;
+    double max_speed, max_steering_angle, pose_x, pose_y, wheelbase, vel;
     int sphere_marker_idx, cylinder_marker_idx, line_marker_idx;
     std::vector<double> path;
 
@@ -56,7 +56,7 @@ public:
 
         //target look-ahead-distance, might differ from l
         double target_l = 1.4;
-
+        //double target_l = vel/max_speed*4+0.7;
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
@@ -70,6 +70,11 @@ public:
 
         double track_node_x = NAN;
         double track_node_y = NAN;
+
+        double a_x = NAN;
+        double a_y = NAN;
+        double b_x = NAN;
+        double b_y = NAN;
         if (path.size() == 0)
         {
             ROS_INFO("Empty path");
@@ -85,8 +90,12 @@ public:
 
             if (sgn(diff_from_l) != sgn(prev_diff_from_l))
             {
-                track_node_x = node_x;
-                track_node_y = node_y;
+                //track_node_x = node_x;
+                //track_node_y = node_y;
+                b_x = node_x;
+                b_y = node_y;
+                a_x = prev_node_x;
+                a_y = prev_node_y;
             }
 
             if (diff_from_l < min_diff_from_l)
@@ -101,24 +110,33 @@ public:
             prev_node_x = node_x;
             prev_node_y = node_y;
         }
-        if (isnanl(track_node_x))
+        if (isnanl(a_x))
         {
             track_node_x = min_diff_x;
             track_node_y = min_diff_y;
         }
-
+        else
+        {
+            publishSphere(a_x, a_y);
+            publishSphere(b_x, b_y);
+            std::vector<double> target = trangulateTarget(a_x, a_y, b_x, b_y, pose_x, pose_y, target_l);
+            track_node_x = target[0];
+            track_node_y = target[1];
+        }
         //actual look-ahead-distance
         double l = distance(pose_x, pose_y, track_node_x, track_node_y);
-
+        //ROS_INFO_STREAM("l"<<l);
         publishSphere(track_node_x, track_node_y);
         publishLine(pose_x, pose_y, track_node_x, track_node_y);
         // TODO: transform goal point to vehicle frame of reference
 
         // TODO: calculate curvature/steering angle
-        double vel = max_speed / 4.0;
 
         double theta = tf::getYaw(pose_msg->pose.orientation);
         double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
+        vel = max_speed/4;
+        //vel = max_speed / (pow(1.5, fabs(alpha))+0.3);
+        //ROS_INFO_STREAM("alpha" << alpha << " vel" << vel);
         if (alpha > M_PI)
         {
             alpha -= 2 * M_PI;
@@ -133,7 +151,7 @@ public:
 
         //Calculate center of turning circle
         //double r = fabs(distance(pose_x, pose_y, track_node_x, track_node_y) / (2 * sin(alpha)));
-        double r = fabs(1/curvature);
+        double r = fabs(1 / curvature);
         double xa = 0.5 * (track_node_x - pose_x);
         double ya = 0.5 * (track_node_y - pose_y);
         double a = sqrt(xa * xa + ya * ya);
@@ -163,6 +181,37 @@ public:
         drive_pub.publish(drive_st_msg);
 
         // TODO: publish drive message, don't forget to limit the steering angle between -0.4189 and 0.4189 radians
+    }
+
+    std::vector<double> trangulateTarget(double a_x, double a_y, double b_x, double b_y, double c_x, double c_y, double l)
+    {
+        double a = distance(c_x, c_y, b_x, b_y);
+        double b = distance(c_x, c_y, a_x, a_y);
+        double c = distance(b_x, b_y, a_x, a_y);
+
+        double cosalpha = (b * b + c * c - a * a) / 2 * b * c;
+        double c1 = b * cosalpha + sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
+        double c2 = b * cosalpha - sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
+
+        double c3;
+        if ((c1 < c && c1 > c2) || c2 > c)
+        {
+            c3 = c1;
+            //ROS_INFO_STREAM("c1");
+        }
+        else
+        {
+            c3 = c2;
+            //ROS_INFO_STREAM("c2");
+        }
+
+        double t_x = a_x + (b_x - a_x) / c * c3;
+        double t_y = a_y + (b_y - a_y) / c * c3;
+        //publishSphere(t_x, t_y);
+        std::vector<double> target;
+        target.push_back(t_x);
+        target.push_back(t_y);
+        return target;
     }
     void path_callback(const std_msgs::Float64MultiArray::ConstPtr &msg)
     {
