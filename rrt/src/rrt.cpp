@@ -84,6 +84,7 @@ void RRT::rrt_loop()
         if (!check_collision(tree[near], x_new))
         {
             tree.push_back(x_new);
+            counter++;
         }
         if (is_goal(x_new))
         {
@@ -91,7 +92,6 @@ void RRT::rrt_loop()
             path = find_path(tree, x_new);
             break;
         }
-        counter++;
     }
     rrt_tree_build = true;
 }
@@ -105,15 +105,12 @@ void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
     std_msgs::Float64MultiArray path_msg;
     for (int i = 0; i < path.size(); i++)
     {
-        
+
         path_msg.data.push_back(path[i].x);
         path_msg.data.push_back(path[i].y);
     }
     path_pub_.publish(path_msg);
     pub_tree(tree);
-
-    
-
 }
 //not being called currently
 void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
@@ -131,8 +128,8 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 
     // tree as std::vector
     std::vector<Node> tree;
-    pose_x=pose_msg->pose.position.x;
-    pose_y=pose_msg->pose.position.y;
+    pose_x = pose_msg->pose.position.x;
+    pose_y = pose_msg->pose.position.y;
 
     // TODO: fill in the RRT main loop
 
@@ -153,11 +150,10 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
     q_goal.clear();
     q_goal.push_back(x);
     q_goal.push_back(y);
-    ROS_INFO_STREAM("New nav goal set to X: " << x<<" Y: "<<y);
+    ROS_INFO_STREAM("New nav goal set to X: " << x << " Y: " << y);
     tree.clear();
     path.clear();
     rrt_loop();
-    
 }
 
 std::vector<double> RRT::sample()

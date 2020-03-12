@@ -134,8 +134,7 @@ public:
 
         double theta = tf::getYaw(pose_msg->pose.orientation);
         double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
-        vel = max_speed/4;
-        //vel = max_speed / (pow(1.5, fabs(alpha))+0.3);
+        vel = max_speed/7;
         //ROS_INFO_STREAM("alpha" << alpha << " vel" << vel);
         if (alpha > M_PI)
         {
@@ -145,6 +144,9 @@ public:
         {
             alpha += 2 * M_PI;
         }
+        //vel = max_speed / (pow(1.1, fabs(alpha)))+0.3;
+        //vel = max_speed - fabs(alpha) * 2.8 + 0.8;
+
         //double omega = 2 * vel * sin(alpha) / l;
         double curvature = 2 * sin(alpha) / l;
         double omega = atan(curvature * wheelbase);
@@ -152,6 +154,8 @@ public:
         //Calculate center of turning circle
         //double r = fabs(distance(pose_x, pose_y, track_node_x, track_node_y) / (2 * sin(alpha)));
         double r = fabs(1 / curvature);
+        //vel = 2*r;
+
         double xa = 0.5 * (track_node_x - pose_x);
         double ya = 0.5 * (track_node_y - pose_y);
         double a = sqrt(xa * xa + ya * ya);
