@@ -102,6 +102,7 @@ private:
     int rrt_steps;
     double collision_accuracy;
     bool rrt_tree_build;
+    std::string pose_topic, scan_topic, path_topic, clicked_point_topic, map_topic, nav_goal_topic, marker_topic, tree_topic;
 
     // The distance transform
     double resolution;
