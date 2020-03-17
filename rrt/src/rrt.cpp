@@ -32,7 +32,7 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
 
-    ROS_INFO_STREAM("rrt_steps" << rrt_steps << " pose topic " << pose_topic);
+    ROS_INFO_STREAM("rrt_steps: " << rrt_steps << "\n pose topic: " << pose_topic);
     // ROS publishers
     // TODO: create publishers for the the drive topic, and other topics you might need
     vis_pub = nh_.advertise<visualization_msgs::Marker>("rrt_marker", 0);
