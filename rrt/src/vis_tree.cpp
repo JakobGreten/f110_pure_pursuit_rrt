@@ -5,16 +5,20 @@ RRTVIS::~RRTVIS() {
 }
 
 RRTVIS::RRTVIS(ros::NodeHandle &nh) : nh_(nh) {
-    std::string tree_topic, wpt_viz_topic,path_topic;
-    nh_.getParam("tree_topic", tree_topic);
+    nh_.getParam("rrt/tree_topic", tree_topic);
     nh_.getParam("rrt/path_topic", path_topic);
-    nh_.getParam("waypoint_viz_topic", wpt_viz_topic);
-    tree_topic="/tree";
-    wpt_viz_topic="/wpt_viz";
-    pt_pub = nh_.advertise<visualization_msgs::Marker>("tree_nodes", 10);
-    l_pub = nh_.advertise<visualization_msgs::Marker>("tree_lines", 10);
-    p_pub = nh_.advertise<visualization_msgs::Marker>("path_lines", 10);
-    wpt_pub = nh_.advertise<visualization_msgs::Marker>("waypoint_marker", 10);
+    nh_.getParam("rrt/map_topic", map_topic);
+    nh_.getParam("rrt/waypoint_viz_topic", wpt_viz_topic);
+    nh_.getParam("rrt/tree_nodes", tree_nodes);
+    nh_.getParam("rrt/tree_lines", tree_lines);
+    nh_.getParam("rrt/path_lines", path_lines);
+    nh_.getParam("rrt/waypoint_marker", waypoint_marker);
+    // tree_topic="/tree";
+    // wpt_viz_topic="/wpt_viz";
+    pt_pub = nh_.advertise<visualization_msgs::Marker>(tree_nodes, 10);
+    l_pub = nh_.advertise<visualization_msgs::Marker>(tree_lines, 10);
+    p_pub = nh_.advertise<visualization_msgs::Marker>(path_lines, 10);
+    wpt_pub = nh_.advertise<visualization_msgs::Marker>(waypoint_marker, 10);
 
     tree_sub = nh_.subscribe(tree_topic, 10, &RRTVIS::tree_callback, this);
     path_sub = nh_.subscribe(path_topic, 10, &RRTVIS::path_callback, this);
@@ -23,14 +27,14 @@ RRTVIS::RRTVIS(ros::NodeHandle &nh) : nh_(nh) {
 
 void RRTVIS::tree_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = map_topic;
     marker.type = marker.LINE_LIST;
     marker.scale.x = 0.015;
     marker.scale.y = 0.015;
     marker.scale.z = 0.015;
 
     visualization_msgs::Marker node_marker;
-    node_marker.header.frame_id = "/map";
+    node_marker.header.frame_id = map_topic;
     node_marker.type = node_marker.SPHERE_LIST;
     node_marker.scale.x = 0.05;
     node_marker.scale.y = 0.05;
@@ -75,7 +79,7 @@ void RRTVIS::tree_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 void RRTVIS::path_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = map_topic;
     marker.type = marker.LINE_STRIP;
     marker.scale.x = 0.05;
     marker.scale.y = 0.05;
@@ -103,7 +107,7 @@ void RRTVIS::path_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
 
 void RRTVIS::wpt_callback(const geometry_msgs::Point::ConstPtr& msg) {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "/map";
+    marker.header.frame_id = map_topic;
     marker.type = marker.SPHERE;
     marker.scale.x = 0.3;
     marker.scale.y = 0.3;

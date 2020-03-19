@@ -10,7 +10,11 @@ nav_goal_topic: "/move_base_simple/goal"
 path_topic: "/path"
 marker_topic: "rrt_marker"
 tree_topic: "/tree"
-
+waypoint_viz_topic: "/wpt_viz"
+tree_nodes: "/tree_nodes"
+tree_lines: "/tree_lines"
+path_lines: "/path_lines"
+waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
 rrt_steps: 6000
