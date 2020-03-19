@@ -388,6 +388,7 @@ void RRT::pub_tree(std::vector<Node> &tree)
     }
     tree_pub_.publish(tree_msg);
 }
+
 void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
 {
     // Fetch the map parameters
