@@ -14,5 +14,7 @@ private:
     ros::Subscriber map_sub;
 
     std::string map_topic, map_buffed_topic;
+    int buff_area;
     void map_callback(const nav_msgs::OccupancyGrid &msg);
+    
 };

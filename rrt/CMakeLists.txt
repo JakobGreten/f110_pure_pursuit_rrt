@@ -145,6 +145,9 @@ add_dependencies(rrt_node ${f110_rrt_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS
 add_executable(rrt_vis_node node/rrt_vis_node.cpp src/vis_tree.cpp)
 add_dependencies(rrt_vis_node ${f110_rrt_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(map_buffed_node node/map_buffed_node.cpp src/map_buffed.cpp)
+add_dependencies(map_buffed_node ${f110_rrt_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -163,6 +166,9 @@ target_link_libraries(rrt_node
   ${catkin_LIBRARIES}
 )
 target_link_libraries(rrt_vis_node
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(map_buffed_node
   ${catkin_LIBRARIES}
 )
 

@@ -2,6 +2,7 @@
 scan_topic: "/scan"
 pose_topic: "/gt_pose"
 map_topic: "/map"
+map_buffed_topic: "/map_buffed"
 clicked_point_topic: "/clicked_point"
 nav_goal_topic: "/move_base_simple/goal"
 
@@ -20,3 +21,5 @@ collision_accuracy: 0.01
 rrt_steps: 6000
 step_length: 1.5
 goal_threshold: 1.0
+
+buff_area: 2
