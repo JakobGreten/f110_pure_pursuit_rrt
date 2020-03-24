@@ -132,6 +132,7 @@ private:
     bool check_collision(Node &nearest_node, Node &new_node);
     bool is_goal(Node &latest_added_node);
     std::vector<Node> find_path(std::vector<Node> &tree, Node &latest_added_node);
+    
     // RRT* methods
     double cost(std::vector<Node> &tree, Node &node);
     double line_cost(Node &n1, Node &n2);
