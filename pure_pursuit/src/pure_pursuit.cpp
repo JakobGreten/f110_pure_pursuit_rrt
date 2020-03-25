@@ -23,6 +23,7 @@ private:
 
     double max_speed, max_steering_angle, pose_x, pose_y, wheelbase, vel;
     int sphere_marker_idx, cylinder_marker_idx, line_marker_idx;
+    bool goal_reached = false;
     std::vector<double> path;
 
 public:
@@ -56,7 +57,7 @@ public:
 
         //target look-ahead-distance, might differ from l
         double target_l = 1.4;
-        //double target_l = vel/max_speed*4+0.7;
+        //double target_l = vel/max_speed*1.4+0.9;
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
@@ -75,7 +76,12 @@ public:
         double a_y = NAN;
         double b_x = NAN;
         double b_y = NAN;
-        if (path.size() == 0 &&false)
+        if(path.size()>0&&distance(pose_x,pose_y,path[0],path[1])<0.6){
+            goal_reached = true;
+        }else{
+            goal_reached = false;
+        }
+        if (path.size() == 0 && false)
         {
             ROS_INFO("Empty path");
         }
@@ -96,6 +102,7 @@ public:
                 b_y = node_y;
                 a_x = prev_node_x;
                 a_y = prev_node_y;
+                
             }
 
             if (diff_from_l < min_diff_from_l)
@@ -134,7 +141,7 @@ public:
 
         double theta = tf::getYaw(pose_msg->pose.orientation);
         double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
-        vel = max_speed/7;
+        //vel = max_speed/7;
         //ROS_INFO_STREAM("alpha" << alpha << " vel" << vel);
         if (alpha > M_PI)
         {
@@ -145,7 +152,25 @@ public:
             alpha += 2 * M_PI;
         }
         //vel = max_speed / (pow(1.1, fabs(alpha)))+0.3;
-        //vel = max_speed - fabs(alpha) * 2.8 + 0.8;
+        if (goal_reached)
+        {
+            vel = 0;
+        }
+        else
+        {
+            double mult_factor = 16.9;
+            double add_factor = 1.0;
+            double mult_part = max_speed - fabs(alpha) * mult_factor;
+            if (mult_part > 0)
+            {
+                vel = mult_part + add_factor;
+            }
+            else
+            {
+                vel = add_factor;
+            }
+        }
+        //ROS_INFO_STREAM_ONCE(vel);
 
         //double omega = 2 * vel * sin(alpha) / l;
         double curvature = 2 * sin(alpha) / l;
@@ -174,6 +199,11 @@ public:
             x_center = x0 + b * ya / a;
             y_center = y0 - b * xa / a;
         }
+        if(omega>0.4189){
+            omega = 0.4189;
+        }else if (omega<-0.4189){
+            omega = -0.4189;
+        }
         //ROS_INFO_STREAM("xcenter: " << x_center << " ycenter" << y_center << "test" << r);
         publishCylinder(x_center, y_center, r * 2);
 
@@ -198,15 +228,19 @@ public:
         double c2 = b * cosalpha - sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
 
         double c3;
-        if ((c1 < c && c1 > c2) || c2 > c)
+        if ((c1 < c && c1 > c2 && c1 > 0) || (c2 > c && c1 < c && c1 > 0))
         {
             c3 = c1;
             //ROS_INFO_STREAM("c1");
         }
-        else
+        else if (c2 < c && c2 > 0)
         {
             c3 = c2;
             //ROS_INFO_STREAM("c2");
+        }
+        else
+        {
+            c3 = c;
         }
 
         double t_x = a_x + (b_x - a_x) / c * c3;
@@ -220,6 +254,7 @@ public:
     void path_callback(const std_msgs::Float64MultiArray::ConstPtr &msg)
     {
         path = msg->data;
+        //std::cout << "[ INFO] [" << ros::Time::now() << "]: goal" << goal_reached << std::endl;
     }
     double distance(double ax, double ay, double bx, double by)
     {

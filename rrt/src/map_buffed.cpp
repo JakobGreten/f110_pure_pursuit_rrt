@@ -10,7 +10,7 @@ MAPBUFFED::MAPBUFFED(ros::NodeHandle &nh) : nh_(nh) {
     nh_.getParam("rrt/buff_area", buff_area); 
     //parameterized buff_area returns not the value in rrt_params.yaml.
     //I don't know why, yet.
-    buff_area = 2;
+    //buff_area = 2;
     map_buffed_pub = nh_.advertise<nav_msgs::OccupancyGrid>(map_buffed_topic, 1, true);
 
     ROS_INFO_STREAM("The map buffer started!");
@@ -21,7 +21,7 @@ void MAPBUFFED::map_callback(const nav_msgs::OccupancyGrid &msg) {
     nav_msgs::OccupancyGrid oGrid;
     std::vector<int8_t> map(msg.data.size());
     map = msg.data;
-    //ROS_INFO_STREAM("the area is: "<< buff_area );
+    ROS_INFO_STREAM("the area is: "<< buff_area );
 
    //every pixel hast to be buffed
     for(int num=0; num<msg.info.height*msg.info.width; num++){
