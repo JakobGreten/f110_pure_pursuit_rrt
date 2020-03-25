@@ -25,7 +25,7 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/pose_topic", pose_topic);
     nh_.getParam("rrt/scan_topic", scan_topic);
     nh_.getParam("rrt/path_topic", path_topic);
-    nh_.getParam("rrt/map_topic", map_topic);
+    nh_.getParam("rrt/map_buffed_topic", map_topic);
     nh_.getParam("rrt/clicked_point_topic", clicked_point_topic);
     nh_.getParam("rrt/nav_goal_topic", nav_goal_topic);
     nh_.getParam("rrt/marker_topic", marker_topic);
@@ -79,6 +79,7 @@ void RRT::rrt_loop()
     tree.push_back(start);
 
     int counter = 0;
+
     while (counter < rrt_steps)
     {
         std::vector<double> sampled_point = sample();
@@ -88,7 +89,6 @@ void RRT::rrt_loop()
         if (!check_collision(tree[near], x_new))
         {
             tree.push_back(x_new);
-            counter++;
         }
         if (is_goal(x_new))
         {
@@ -96,6 +96,7 @@ void RRT::rrt_loop()
             path = find_path(tree, x_new);
             break;
         }
+        counter++;
     }
     rrt_tree_build = true;
 }

@@ -75,7 +75,7 @@ public:
         double a_y = NAN;
         double b_x = NAN;
         double b_y = NAN;
-        if (path.size() == 0)
+        if (path.size() == 0 &&false)
         {
             ROS_INFO("Empty path");
         }

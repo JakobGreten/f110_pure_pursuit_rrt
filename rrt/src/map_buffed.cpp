@@ -41,7 +41,7 @@ void MAPBUFFED::map_callback(const nav_msgs::OccupancyGrid &msg) {
     }
 
     //building msg for map_buffed_pub
-    oGrid.header.frame_id = "map_buffed";
+    oGrid.header.frame_id = "map";
     oGrid.header.stamp = ros::Time::now();
 
     oGrid.data = map;
@@ -51,6 +51,7 @@ void MAPBUFFED::map_callback(const nav_msgs::OccupancyGrid &msg) {
     oGrid.info.origin = msg.info.origin;
     oGrid.info.resolution = msg.info.resolution;
     oGrid.info.width = msg.info.width;
+    
     //TODO: the maps origin is not in the center of the map
     map_buffed_pub.publish(oGrid);
     ROS_INFO_STREAM("The map got buffed!");
