@@ -35,6 +35,8 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/collision_accuracy", collision_accuracy);
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
+    nh_.getParam("rrt/kRRT", kRRT);
+    
 
     ROS_INFO_STREAM("rrt_steps: " << rrt_steps << " pose_topic: " << pose_topic);
     // ROS publishers
@@ -74,7 +76,7 @@ void RRT::rrt_loop()
     Node start;
     start.x = pose_x;
     start.y = pose_y;
-    start.cost = 1;
+    start.cost = 0;
     start.is_root = true;
     tree.push_back(start);
 
@@ -88,6 +90,8 @@ void RRT::rrt_loop()
         Node x_new = steer(near, tree[near], sampled_point);
         if (!check_collision(tree[near], x_new))
         {
+            
+
             tree.push_back(x_new);
         }
         if (is_goal(x_new))
@@ -101,12 +105,12 @@ void RRT::rrt_loop()
     rrt_tree_build = true;
 }
 
-void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
-{
-    // The scan callback, update your occupancy grid here
+// The scan callback, update your occupancy grid here
     // Args:
     //    scan_msg (*LaserScan): pointer to the incoming scan message
     // Returns:
+void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
+{
     std_msgs::Float64MultiArray path_msg;
     for (int i = 0; i < path.size(); i++)
     {
@@ -118,13 +122,15 @@ void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
     pub_tree(tree);
 }
 //not being called currently
-void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
-{
-    // The pose callback when subscribed to particle filter's inferred pose
+
+// The pose callback when subscribed to particle filter's inferred pose
     // The RRT main loop happens here
     // Args:
     //    pose_msg (*PoseStamped): pointer to the incoming pose message
     // Returns:
+void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
+{
+    
     //
     //double distance_to_nearest = distance_transform(pose_msg->pose.position.x, pose_msg->pose.position.y);
     //ROS_INFO_STREAM("Distance: " << distance_to_nearest);
@@ -140,6 +146,7 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 
     // path found as Path message
 }
+
 void RRT::clicked_point_callback(const geometry_msgs::PointStamped &pose_msg)
 {
 
@@ -161,15 +168,14 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
     rrt_loop();
 }
 
-std::vector<double> RRT::sample()
-{
-    // This method returns a sampled point from the free space
+// This method returns a sampled point from the free space
     // You should restrict so that it only samples a small region
     // of interest around the car's current position
     // Args:
     // Returns:
     //     sampled_point (std::vector<double>): the sampled point in free space
-
+std::vector<double> RRT::sample()
+{
     std::vector<double> sampled_point;
     sampled_point.push_back(x_dist(gen));
     sampled_point.push_back(y_dist(gen));
@@ -177,14 +183,15 @@ std::vector<double> RRT::sample()
     return sampled_point;
 }
 
-int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
-{
-    // This method returns the nearest node on the tree to the sampled point
+// This method returns the nearest node on the tree to the sampled point
     // Args:
     //     tree (std::vector<Node>): the current RRT tree
     //     sampled_point (std::vector<double>): the sampled point in free space
     // Returns:
     //     nearest_node (int): index of nearest node on the tree
+int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
+{
+    
     int nearest_node = 0;
     double nearest_distance = 9999999;
     for (int i = 0; i < tree.size(); i++)
@@ -207,21 +214,21 @@ double RRT::distanceNodePoint(Node node, std::vector<double> &point)
     return sqrt(xdif * xdif + ydif * ydif);
 }
 
+/*  The function steer:(x,y)->z returns a point such that z is “closer”
+    to y than x is. The point z returned by the function steer will be
+    such that z minimizes ||z−y|| while at the same time maintaining
+    ||z−x|| <= max_expansion_dist, for a prespecified max_expansion_dist > 0
+
+    basically, expand the tree towards the sample point (within a max dist)
+
+    Args:
+       nearest_node (Node): nearest node on the tree to the sampled point
+       sampled_point (std::vector<double>): the sampled point in free space
+    Returns:
+       new_node (Node): new node created from steering
+*/
 Node RRT::steer(int parent, Node &nearest_node, std::vector<double> &sampled_point)
 {
-    // The function steer:(x,y)->z returns a point such that z is “closer”
-    // to y than x is. The point z returned by the function steer will be
-    // such that z minimizes ||z−y|| while at the same time maintaining
-    //||z−x|| <= max_expansion_dist, for a prespecified max_expansion_dist > 0
-
-    // basically, expand the tree towards the sample point (within a max dist)
-
-    // Args:
-    //    nearest_node (Node): nearest node on the tree to the sampled point
-    //    sampled_point (std::vector<double>): the sampled point in free space
-    // Returns:
-    //    new_node (Node): new node created from steering
-
     Node new_node;
     new_node.parent = parent;
     new_node.is_root = false;
@@ -316,49 +323,59 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
     return found_path;
 }
 
-// RRT* methods
-double RRT::cost(std::vector<Node> &tree, Node &node)
-{
-    // This method returns the cost associated with a node
+// RRT* methods--------------------------------------------------------
+
+// This method returns the cost associated with a node
     // Args:
     //    tree (std::vector<Node>): the current tree
     //    node (Node): the node the cost is calculated for
     // Returns:
     //    cost (double): the cost value associated with the node
-
-    double cost = 0;
-    // TODO: fill in this method
+double RRT::cost(std::vector<Node> &tree, Node &node)
+{
+    
+    Node parent = tree[node.parent];
+    double cost = parent.cost+line_cost(parent,node);
 
     return cost;
 }
 
-double RRT::line_cost(Node &n1, Node &n2)
-{
-    // This method returns the cost of the straight line path between two nodes
+// This method returns the cost of the straight line path between two nodes
     // Args:
     //    n1 (Node): the Node at one end of the path
     //    n2 (Node): the Node at the other end of the path
     // Returns:
     //    cost (double): the cost value associated with the path
+double RRT::line_cost(Node &n1, Node &n2)
+{
+    
 
-    double cost = 0;
-    // TODO: fill in this method
+    double cost = sqrt(pow(n1.x-n2.x,2)+pow(n1.y-n2.y,2));
 
     return cost;
 }
 
+// This method returns the set of Nodes in the neighborhood of a node.
+// Args:
+//   tree (std::vector<Node>): the current tree
+//   node (Node): the node to find the neighborhood for
+// Returns:
+//   neighborhood (std::vector<int>): the index of the nodes in the neighborhood
 std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
 {
-    // This method returns the set of Nodes in the neighborhood of a
-    // node.
-    // Args:
-    //   tree (std::vector<Node>): the current tree
-    //   node (Node): the node to find the neighborhood for
-    // Returns:
-    //   neighborhood (std::vector<int>): the index of the nodes in the neighborhood
+    
 
+    // radius of the neighbourhood
+    double radius = kRRT*log(tree.size);
+    double dist;
     std::vector<int> neighborhood;
-    // TODO:: fill in this method
+
+    for(int i= 0; i<tree.size; i++){
+        dist = sqrt(fabs(pow(node.x-tree[i].x,2)+pow(node.y-tree[i].y,2)));
+        if(dist < radius){
+            neighborhood.push_back(i);
+        }
+    }
 
     return neighborhood;
 }

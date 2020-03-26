@@ -21,5 +21,6 @@ collision_accuracy: 0.01
 rrt_steps: 6000
 step_length: 0.8
 goal_threshold: 1.0
-
 buff_area: 8
+#kRRT needs to be greater than 2^(d+1)*e(1 + 1/d), with d:= dimension of the workspace.
+kRRT: 33.0;
