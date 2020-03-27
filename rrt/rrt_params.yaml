@@ -1,6 +1,7 @@
 # Topics that RRT listens to
 scan_topic: "/scan"
 pose_topic: "/gt_pose"
+#pose_topic: "/vrpn_client_node/f1tenth/pose"
 map_topic: "/map"
 map_buffed_topic: "/map_buffed"
 clicked_point_topic: "/clicked_point"

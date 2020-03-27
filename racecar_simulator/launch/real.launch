@@ -3,6 +3,8 @@
   <!-- Listen to messages from joysicks -->
   <node pkg="joy" name="joy_node" type="joy_node"/>
   <arg name="racecar_version" default="racecar-v2" />
+  <!--<param name="pose_topic" type="str" value="/vrpn_client_node/f1tenth/pose"/>-->
+
   <!-- Launch a map from the maps folder-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/levine.yaml"/>-->
   <arg name="map" default="$(find racecar_simulator)/maps/stata_basement.yaml"/>
@@ -17,13 +19,27 @@
   </group>
 
   <!-- start imu and laser scanner -->
-  <include file="$(find racecar)/launch/includes/common/sensors.launch.xml" >
+  <!--<include file="$(find racecar)/launch/includes/common/sensors.launch.xml" >
     <arg name="racecar_version" value="$(arg racecar_version)" />
+  </include>-->
+
+  <include file="$(find vrpn_client_ros)/launch/sample.launch" >
+    <arg name="server" value="192.168.0.100" />
   </include>
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map)"/>
 
   <!-- Launch the racecar model -->
   <include file="$(find racecar_simulator)/launch/racecar_model.launch"/>
+
+
+
+
+
+  <node pkg="racecar_simulator" name="racecar_simulator" type="simulator" output="screen">
+    <rosparam command="load" file="$(find racecar_simulator)/params.yaml"/>
+  </node>
+
+
 
   
 

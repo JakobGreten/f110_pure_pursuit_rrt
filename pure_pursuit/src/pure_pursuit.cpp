@@ -32,8 +32,9 @@ public:
         n = ros::NodeHandle();
         std::string drive_topic, pose_topic;
         n.getParam("pure_pursuit_node/pp_drive_topic", drive_topic);
-        //n.getParam("pure_pursuit_node/pose_topic", pose_topic);
+        //n.getParam("/pose_topic", pose_topic);
         pose_topic = "/gt_pose"; //other pose topic not working
+        //pose_topic = "/vrpn_client_node/f1tenth/pose";
         n.getParam("pure_pursuit_node/max_speed", max_speed);
         n.getParam("pure_pursuit_node/max_steering_angle", max_steering_angle);
         n.getParam("pure_pursuit_node/wheelbase", wheelbase);
@@ -170,6 +171,7 @@ public:
                 vel = add_factor;
             }
         }
+        
         //ROS_INFO_STREAM_ONCE(vel);
 
         //double omega = 2 * vel * sin(alpha) / l;
