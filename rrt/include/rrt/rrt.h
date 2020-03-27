@@ -102,6 +102,8 @@ private:
     int rrt_steps;
     double collision_accuracy;
     bool rrt_tree_build;
+    std::string pose_topic, scan_topic, path_topic, clicked_point_topic, 
+                map_topic, nav_goal_topic, marker_topic, tree_topic;
 
     // The distance transform
     double resolution;
@@ -130,6 +132,7 @@ private:
     bool check_collision(Node &nearest_node, Node &new_node);
     bool is_goal(Node &latest_added_node);
     std::vector<Node> find_path(std::vector<Node> &tree, Node &latest_added_node);
+    
     // RRT* methods
     double cost(std::vector<Node> &tree, Node &node);
     double line_cost(Node &n1, Node &n2);

@@ -1,18 +1,25 @@
 # Topics that RRT listens to
-# TODO: add your own
-# TODO: change this to the pose topic published particle filter
-#pose_topic: "some_pose_topic"
-#scan_topic: "some_scan_topic"
 scan_topic: "/scan"
 pose_topic: "/gt_pose"
-path_topic: "/path"
+map_topic: "/map"
+map_buffed_topic: "/map_buffed"
+clicked_point_topic: "/clicked_point"
+nav_goal_topic: "/move_base_simple/goal"
 
-collision_accuracy: 0.01
-rrt_steps: 6000
-step_length: 1.5
-goal_threshold: 1.0
 # Topics that RRT publishes to
 # TODO: add your own
-# visualization
+path_topic: "/path"
+marker_topic: "rrt_marker"
+tree_topic: "/tree"
+waypoint_viz_topic: "/wpt_viz"
+tree_nodes: "/tree_nodes"
+tree_lines: "/tree_lines"
+path_lines: "/path_lines"
+waypoint_marker: "/waypoint_marker"
+# Parameters for RRT
+collision_accuracy: 0.01
+rrt_steps: 6000
+step_length: 0.8
+goal_threshold: 1.0
 
-# TODO: add Parameters for RRT
+buff_area: 8

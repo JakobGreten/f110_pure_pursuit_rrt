@@ -22,29 +22,33 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 {
 
     // TODO: Load parameters from yaml file, you could add your own parameters to the rrt_params.yaml file
-    std::string pose_topic, scan_topic, path_topic;
     nh_.getParam("rrt/pose_topic", pose_topic);
     nh_.getParam("rrt/scan_topic", scan_topic);
     nh_.getParam("rrt/path_topic", path_topic);
+    nh_.getParam("rrt/map_buffed_topic", map_topic);
+    nh_.getParam("rrt/clicked_point_topic", clicked_point_topic);
+    nh_.getParam("rrt/nav_goal_topic", nav_goal_topic);
+    nh_.getParam("rrt/marker_topic", marker_topic);
+    nh_.getParam("rrt/tree_topic", tree_topic);
 
     nh_.getParam("rrt/rrt_steps", rrt_steps);
     nh_.getParam("rrt/collision_accuracy", collision_accuracy);
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
 
-    ROS_INFO_STREAM("rrt_steps" << rrt_steps << " pose topic " << pose_topic);
+    ROS_INFO_STREAM("rrt_steps: " << rrt_steps << " pose_topic: " << pose_topic);
     // ROS publishers
     // TODO: create publishers for the the drive topic, and other topics you might need
-    vis_pub = nh_.advertise<visualization_msgs::Marker>("rrt_marker", 0);
-    tree_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/tree", 0);
+    vis_pub = nh_.advertise<visualization_msgs::Marker>(marker_topic, 0);
+    tree_pub_ = nh_.advertise<std_msgs::Float64MultiArray>(tree_topic, 0);
     path_pub_ = nh_.advertise<std_msgs::Float64MultiArray>(path_topic, 10);
     // ROS subscribers
     // TODO: create subscribers as you need
     pf_sub_ = nh_.subscribe(pose_topic, 10, &RRT::pf_callback, this);
     scan_sub_ = nh_.subscribe(scan_topic, 10, &RRT::scan_callback, this);
-    map_sub = nh_.subscribe("/map", 1, &RRT::map_callback, this);
-    click_sub = nh_.subscribe("/clicked_point", 1, &RRT::clicked_point_callback, this);
-    nav_goal_sub = nh_.subscribe("/move_base_simple/goal", 1, &RRT::nav_goal_callback, this);
+    map_sub = nh_.subscribe(map_topic, 1, &RRT::map_callback, this);
+    click_sub = nh_.subscribe(clicked_point_topic, 1, &RRT::clicked_point_callback, this);
+    nav_goal_sub = nh_.subscribe(nav_goal_topic, 1, &RRT::nav_goal_callback, this);
 
     //ROS_INFO_STREAM("Scan topic"<<scan_topic.c_str());
     // TODO: create a occupancy grid
@@ -75,6 +79,7 @@ void RRT::rrt_loop()
     tree.push_back(start);
 
     int counter = 0;
+
     while (counter < rrt_steps)
     {
         std::vector<double> sampled_point = sample();
@@ -84,7 +89,6 @@ void RRT::rrt_loop()
         if (!check_collision(tree[near], x_new))
         {
             tree.push_back(x_new);
-            counter++;
         }
         if (is_goal(x_new))
         {
@@ -92,6 +96,7 @@ void RRT::rrt_loop()
             path = find_path(tree, x_new);
             break;
         }
+        counter++;
     }
     rrt_tree_build = true;
 }
@@ -384,6 +389,7 @@ void RRT::pub_tree(std::vector<Node> &tree)
     }
     tree_pub_.publish(tree_msg);
 }
+
 void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
 {
     // Fetch the map parameters

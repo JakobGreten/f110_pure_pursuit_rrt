@@ -50,6 +50,9 @@
   <node pkg="rrt" name="vis_rrt" type="rrt_vis_node" output="screen">
     <rosparam command="load" file="$(find rrt)/rrt_params.yaml"/>
   </node>
+  <node pkg="rrt" name="map_buffed" type="map_buffed_node" output="screen">
+    <rosparam command="load" file="$(find rrt)/rrt_params.yaml"/>
+  </node>
   <!-- ***Put launch command for new planner here:-->
   <!-- Launch the New Planner Node -->
   <!--   <node pkg="racecar_simulator" name="new node's name" type="new file name" output="screen">
