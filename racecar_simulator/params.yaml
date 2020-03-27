@@ -62,7 +62,7 @@ new_method_mux_idx: -1
 joy: true
 # Joystick indices
 joy_speed_axis: 1
-joy_angle_axis: 3
+joy_angle_axis: 2
 joy_max_speed: 2. # meters/second
 # Joystick indices for toggling mux
 joy_button_idx: 4  # LB button
@@ -93,7 +93,7 @@ obstacle_size: 2
 
 # The names of topics to listen and publish to
 joy_topic: "/joy"
-drive_topic: "/drive"
+drive_topic: "/vesc/high_level/ackermann_cmd_mux/input/nav_0"
 map_topic: "/map"
 distance_transform_topic: "/dt"
 scan_topic: "/scan"
