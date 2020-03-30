@@ -10,6 +10,9 @@
 
 #include <random>
 
+#include <iostream>
+using namespace std;
+
 // Destructor of the RRT class
 RRT::~RRT()
 {
@@ -73,10 +76,15 @@ void RRT::rrt_loop()
     //q_goal.push_back(8);
     //q_goal.push_back(0);
 
+//DEBUG---------------------------------------------------------------------------------------------
+    ROS_INFO_STREAM("press a key");  
+    cin.get();
+    tree.clear();
     Node start;
     start.x = pose_x;
     start.y = pose_y;
     start.cost = 0;
+    start.parent = -1;
     start.is_root = true;
     tree.push_back(start);
 
@@ -84,20 +92,69 @@ void RRT::rrt_loop()
 
     while (counter < rrt_steps)
     {
+        
+// DEBUG---------------------------------------------------------------------------------------
+        for(Node n : tree){
+            ROS_INFO_STREAM(counter << ". Round: \nx: "<<n.x<<"; y: "<<n.y<<"; cost: "<<n.cost<<"; parent: "<<n.parent<<"\n");
+        }
+
         std::vector<double> sampled_point = sample();
-        //ROS_INFO_STREAM(sampled_point[0]);
         int near = nearest(tree, sampled_point);
-        Node x_new = steer(near, tree[near], sampled_point);
+        Node x_new = steer(tree[near], sampled_point);
         if (!check_collision(tree[near], x_new))
         {
-            
+            std::vector<int> neighbourhood = RRT::near(tree, x_new);
+
+//DEBUG---------------------------------------------------------------------------------------------
+//            for (int i = 0;i< neighbourhood.size();i++) ROS_INFO_STREAM("Node is in neighbourhood: "<<neighbourhood[i]);
+//            ROS_INFO_STREAM("neighbourhood size: "<<neighbourhood.size());
 
             tree.push_back(x_new);
+            int min_node = near;
+            
+//DEBUG---------------------------------------------------------------------------------------------
+            ROS_INFO_STREAM("the initial min_node: "<<near);
+            
+            double cost_min = cost(tree[near], x_new);
+            for (int i:neighbourhood){ 
+                //ROS_INFO_STREAM("neighbour: "<<i);                    
+                double cost_neighbour = cost(tree[i],x_new);          
+                if(check_collision(tree[i], x_new) && cost_neighbour<cost_min){
+                    min_node = i;
+//DEBUG---------------------------------------------------------------------------------------------
+                    ROS_INFO_STREAM("min_node in the if: "<<i);
+                    cost_min = cost_neighbour;
+                }
+            }
+            x_new.cost = cost_min;                   
+            x_new.parent = min_node;
+//DEBUG---------------------------------------------------------------------------------------------
+            ROS_INFO_STREAM("parent of the new node: "<<x_new.parent);            
+            //ROS_INFO_STREAM("parent of the second node: "<<tree[1].parent);
+
+            for (int i:neighbourhood){    
+                Node neighbour = tree[i];
+                double cost_newroute = cost(x_new,neighbour); 
+                if(!check_collision(x_new,neighbour) && cost_newroute<neighbour.cost){
+//DEBUG---------------------------------------------------------------------------------------------
+                    ROS_INFO_STREAM("neighbour.parent before: "<<neighbour.parent<<"\n neighbour.parent after: "<<x_new.parent<<"\n index in tree: "<<i);                    
+                    if(x_new.parent==i){
+                        ROS_ERROR_STREAM("child and parent are the same!");                    
+                        cin.get();
+                    } 
+                    
+                    neighbour.parent = tree.size()-1;   //make x_new the new parent of neighbour.
+                }
+            }
         }
         if (is_goal(x_new))
         {
             ROS_INFO_STREAM("Goal found");
+//DEBUG---------------------------------------------------------------------------------------------
+            cin.get();
+            
             path = find_path(tree, x_new);
+            ROS_INFO_STREAM("path found");
             break;
         }
         counter++;
@@ -112,6 +169,7 @@ void RRT::rrt_loop()
 void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 {
     std_msgs::Float64MultiArray path_msg;
+
     for (int i = 0; i < path.size(); i++)
     {
 
@@ -188,7 +246,7 @@ std::vector<double> RRT::sample()
     //     tree (std::vector<Node>): the current RRT tree
     //     sampled_point (std::vector<double>): the sampled point in free space
     // Returns:
-    //     nearest_node (int): index of nearest node on the tree
+    //     nearest_node (int): Index of nearest node on the tree
 int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
 {
     
@@ -227,12 +285,10 @@ double RRT::distanceNodePoint(Node node, std::vector<double> &point)
     Returns:
        new_node (Node): new node created from steering
 */
-Node RRT::steer(int parent, Node &nearest_node, std::vector<double> &sampled_point)
+Node RRT::steer(Node &nearest_node, std::vector<double> &sampled_point)
 {
     Node new_node;
-    new_node.parent = parent;
     new_node.is_root = false;
-    new_node.cost = 0.6;
 
     double distance = distanceNodePoint(nearest_node, sampled_point);
     //ROS_INFO_STREAM("Distance"<<distance);
@@ -289,19 +345,19 @@ bool RRT::is_goal(Node &latest_added_node)
     // Returns:
     //   close_enough (bool): true if node close enough to the goal
     bool close_enough = false;
-
+    
     double dist_goal = distanceNodePoint(latest_added_node, q_goal);
     if (dist_goal < goal_threshold)
     {
         close_enough = true;
     }
-    // TODO: fill in this method
 
     return close_enough;
 }
 
 std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_node)
 {
+    //ROS_INFO_STREAM("search path");
     // This method traverses the tree from the node that has been determined
     // as goal
     // Args:
@@ -311,12 +367,32 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
     //   path (std::vector<Node>): the vector that represents the order of
     //      of the nodes traversed as the found path
 
+/*
+    cin.get();
+    for (Node n : tree){
+        ROS_INFO_STREAM("\nn.x: "<<n.x<<"; n.y: "<<n.y<<"; n.cost: "<<n.cost<<"; parent: "<<n.parent<<"\n");
+    }
+    cin.get();
+*/
     std::vector<Node> found_path;
     Node n = latest_added_node;
+    int count = 0;
     while (!n.is_root)
     {
-        found_path.push_back(n);
-        n = tree[n.parent];
+        if (count < rrt_steps){
+
+// DEBUG---------------------------------------------------------------------------------------
+            ROS_INFO_STREAM(count << ".\nn.x: "<<n.x<<"; n.y: "<<n.y<<"; n.cost: "<<n.cost<<"; parent: "<<n.parent);
+
+            found_path.push_back(n);
+            n = tree[n.parent];
+            count++;
+        }else
+        {
+            //ROS_ERROR_STREAM("path counter exceeds the rrt_steps "<<rrt_steps);
+            break;
+        }
+        
     }
     found_path.push_back(n);
 
@@ -327,16 +403,15 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
 
 // This method returns the cost associated with a node
     // Args:
-    //    tree (std::vector<Node>): the current tree
+    //    parent (Node): the parent of node
     //    node (Node): the node the cost is calculated for
     // Returns:
     //    cost (double): the cost value associated with the node
-double RRT::cost(std::vector<Node> &tree, Node &node)
+double RRT::cost(Node &parent, Node &node)
 {
+        
+    double cost = parent.cost + line_cost(parent,node);
     
-    Node parent = tree[node.parent];
-    double cost = parent.cost+line_cost(parent,node);
-
     return cost;
 }
 
@@ -360,17 +435,20 @@ double RRT::line_cost(Node &n1, Node &n2)
 //   tree (std::vector<Node>): the current tree
 //   node (Node): the node to find the neighborhood for
 // Returns:
-//   neighborhood (std::vector<int>): the index of the nodes in the neighborhood
+//   neighborhood (std::vector<int>): the IDs of the nodes in the neighborhood
 std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
 {
     
 
     // radius of the neighbourhood
-    double radius = kRRT*log(tree.size);
+    //TODO: warum wird kRRT nicht korrekt aus params geladen?
+    //double radius = kRRT/log(tree.size());
+    double radius = 3.0;
+    
     double dist;
     std::vector<int> neighborhood;
 
-    for(int i= 0; i<tree.size; i++){
+    for(int i= 0; i<tree.size(); i++){
         dist = sqrt(fabs(pow(node.x-tree[i].x,2)+pow(node.y-tree[i].y,2)));
         if(dist < radius){
             neighborhood.push_back(i);
@@ -397,7 +475,14 @@ void RRT::pub_tree(std::vector<Node> &tree)
         }
         else
         {
-            px = tree[tree[i].parent].x, py = tree[tree[i].parent].y;
+            if(abs(tree[i].parent)<tree.size()){
+                px = tree[tree[i].parent].x, py = tree[tree[i].parent].y;
+            }else
+            {
+                //ROS_ERROR_STREAM("The parent of node" <<i<<" is not in the tree. It's assigned parent is: "<<tree[i].parent);
+                break;
+            }
+            
         }
         tree_msg.data.push_back(x);
         tree_msg.data.push_back(y);
