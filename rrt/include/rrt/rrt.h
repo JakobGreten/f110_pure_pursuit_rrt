@@ -45,7 +45,7 @@ typedef struct Node
 {
     double x, y;
     double cost; // only used for RRT*
-    int parent; // index of parent node in the tree vector
+    int parent, old_parent; // index of parent node in the tree vector
     bool is_root = false;
 } Node;
 

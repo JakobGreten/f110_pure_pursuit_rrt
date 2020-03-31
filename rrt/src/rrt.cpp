@@ -94,7 +94,8 @@ void RRT::rrt_loop()
         {
             std::vector<int> neighbourhood = RRT::near(tree, x_new); 
 
-            int min_node = near;                        
+            int min_node = near;
+            x_new.old_parent = near;
             double cost_min = cost(tree[near], x_new);
             for (int i:neighbourhood)
             {                
