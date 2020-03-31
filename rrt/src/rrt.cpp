@@ -101,7 +101,7 @@ void RRT::rrt_loop()
             for (int i:neighbourhood)
             {                
                 double cost_neighbour = cost(tree[i],x_new);          
-                if(check_collision(tree[i], x_new) && cost_neighbour<cost_min)
+                if(!check_collision(tree[i], x_new) && cost_neighbour<cost_min)
                 {
                     min_node = i;
                     cost_min = cost_neighbour;
@@ -445,7 +445,7 @@ void RRT::pub_tree(std::vector<Node> &tree)
     for (int i = 1; i < tree_length; i++)
     {
         double x = tree[i].x, y = tree[i].y;
-        double px, py;
+        double px, py,opx,opy;
         if (tree[i].parent == -1)
         {
             px = 0.0;
@@ -462,10 +462,30 @@ void RRT::pub_tree(std::vector<Node> &tree)
             }
             
         }
+        if (tree[i].old_parent == -1)
+        {
+            opx = 0.0;
+            opy = 0.0;
+        }
+        else
+        {
+            if(abs(tree[i].old_parent)<tree.size()){
+                opx = tree[tree[i].old_parent].x, opy = tree[tree[i].old_parent].y;
+            }else
+            {
+                //ROS_ERROR_STREAM("The parent of node" <<i<<" is not in the tree. It's assigned parent is: "<<tree[i].parent);
+                break;
+            }
+            
+        }
         tree_msg.data.push_back(x);
         tree_msg.data.push_back(y);
+        //parent
         tree_msg.data.push_back(px);
         tree_msg.data.push_back(py);
+        //old parent
+        tree_msg.data.push_back(opx);
+        tree_msg.data.push_back(opy);
     }
     tree_pub_.publish(tree_msg);
 }

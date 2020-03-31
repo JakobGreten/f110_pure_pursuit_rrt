@@ -13,12 +13,13 @@ marker_topic: "rrt_marker"
 tree_topic: "/tree"
 waypoint_viz_topic: "/wpt_viz"
 tree_nodes: "/tree_nodes"
-tree_lines: "/tree_lines"
+rrt_lines: "/rrt_lines"
+rrt_star_lines: "/rrt_star_lines"
 path_lines: "/path_lines"
 waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
-rrt_steps: 60000
+rrt_steps: 6000
 step_length: 0.8
 goal_threshold: 1.0
 buff_area: 8

@@ -14,6 +14,7 @@ private:
     ros::NodeHandle nh_;
     ros::Publisher pt_pub;
     ros::Publisher l_pub;
+    ros::Publisher l_star_pub;
     ros::Publisher p_pub;
     ros::Publisher wpt_pub;
     ros::Publisher g_pub;
@@ -23,7 +24,7 @@ private:
     ros::Subscriber wpt_sub;
 
     std::string tree_topic, wpt_viz_topic, path_topic, tree_nodes, 
-                tree_lines, path_lines, waypoint_marker, map_topic;
+                rrt_lines,rrt_star_lines, path_lines, waypoint_marker, map_topic;
     void tree_callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
     void path_callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
     void wpt_callback(const geometry_msgs::Point::ConstPtr& msg);

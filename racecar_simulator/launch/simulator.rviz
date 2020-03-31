@@ -194,7 +194,15 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /tree_lines
+      Marker Topic: /rrt_lines
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /rrt_star_lines
       Name: Marker
       Namespaces:
         {}
