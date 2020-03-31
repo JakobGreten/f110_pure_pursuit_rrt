@@ -98,7 +98,7 @@ private:
 
     std::vector<double> q_goal;
     double goal_threshold;
-    double kRRT;
+    double dRRT;
     double step_length;
     int rrt_steps;
     double collision_accuracy;
