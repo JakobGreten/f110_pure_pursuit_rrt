@@ -79,6 +79,7 @@ void RRT::rrt_loop()
     start.y = pose_y;
     start.cost = 0;
     start.parent = -1;
+    start.old_parent = -1;
     start.is_root = true;
     tree.push_back(start);
 
