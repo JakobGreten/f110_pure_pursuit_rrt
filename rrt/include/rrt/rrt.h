@@ -135,6 +135,7 @@ private:
     std::vector<Node> find_path(std::vector<Node> &tree, Node &latest_added_node);
     
     // RRT* methods
+    void rrt_star(std::vector<Node> &tree, Node &node, int &near);
     double cost(Node &parent, Node &node);
     double line_cost(Node &n1, Node &n2);
     std::vector<int> near(std::vector<Node> &tree, Node &node);
