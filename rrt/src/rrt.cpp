@@ -20,7 +20,7 @@ RRT::~RRT()
 // Constructor of the RRT class
 RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 {
-
+    
     // TODO: Load parameters from yaml file, you could add your own parameters to the rrt_params.yaml file
     nh_.getParam("rrt/pose_topic", pose_topic);
     nh_.getParam("rrt/scan_topic", scan_topic);
@@ -35,6 +35,18 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/collision_accuracy", collision_accuracy);
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
+
+
+    bool real = false;
+    std::string real_pose_topic = "";
+    nh_.getParam("/real", real);
+    nh_.getParam("/real_pose_topic", real_pose_topic);
+
+    if(real){
+        pose_topic = real_pose_topic;
+        ROS_INFO_STREAM("Real RRT launch");
+    }
+
 
     ROS_INFO_STREAM("rrt_steps: " << rrt_steps << " pose_topic: " << pose_topic);
     // ROS publishers

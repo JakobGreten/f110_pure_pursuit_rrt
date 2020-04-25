@@ -39,6 +39,16 @@ public:
         n.getParam("pure_pursuit_node/max_steering_angle", max_steering_angle);
         n.getParam("pure_pursuit_node/wheelbase", wheelbase);
 
+        bool real = false;
+        std::string real_pose_topic = "";
+        n.getParam("/real", real);
+        n.getParam("/real_pose_topic", real_pose_topic);
+
+        if(real){
+            pose_topic = real_pose_topic;
+            ROS_INFO_STREAM("Real Pure Pursuit launch");
+        }
+
         drive_pub = n.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 10);
         vis_pub = n.advertise<visualization_msgs::Marker>("pure_pursuit_marker", 10);
 

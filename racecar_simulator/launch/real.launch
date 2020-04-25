@@ -3,7 +3,8 @@
   <!-- Listen to messages from joysicks -->
   <node pkg="joy" name="joy_node" type="joy_node"/>
   <arg name="racecar_version" default="racecar-v2" />
-  <!--<param name="pose_topic" type="str" value="/vrpn_client_node/f1tenth/pose"/>-->
+  <param name="real" type="bool" value="true"/>
+  <param name="real_pose_topic" type="str" value="/vrpn_client_node/f1tenth/pose"/>
 
   <!-- Launch a map from the maps folder-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/levine.yaml"/>-->

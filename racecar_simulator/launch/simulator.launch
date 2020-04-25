@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Listen to messages from joysicks -->
+  <param name="real" type="bool" value="false"/>
+
   <!--<param name="pose_topic" type="str" value="/gt_pose"/>-->
 
   <node pkg="joy" name="joy_node" type="joy_node"/>

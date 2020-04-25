@@ -196,6 +196,19 @@ public:
         // Get obstacle size parameter
         n.getParam("obstacle_size", obstacle_size);
 
+
+        bool real = false;
+        std::string real_pose_topic = "";
+        n.getParam("/real", real);
+        n.getParam("/real_pose_topic", real_pose_topic);
+
+        if(real){
+            pose_topic = real_pose_topic;
+            ROS_INFO_STREAM("Real Simulator launch");
+        }
+
+
+
         // Initialize a simulator of the laser scanner
         scan_simulator = ScanSimulator2D(
             scan_beams,
@@ -218,8 +231,12 @@ public:
         pose_pub = n.advertise<geometry_msgs::PoseStamped>(gt_pose_topic, 1);
 
         // Start a timer to output the pose
-        update_pose_timer = n.createTimer(ros::Duration(update_pose_rate), &RacecarSimulator::update_pose, this);
+        if(real){
+            update_pose_timer = n.createTimer(ros::Duration(update_pose_rate), &RacecarSimulator::update_real_pose, this);
+        }else{
+            update_pose_timer = n.createTimer(ros::Duration(update_pose_rate), &RacecarSimulator::update_pose, this);
 
+        }
         // Start a subscriber to listen to drive commands
         drive_sub = n.subscribe(drive_topic, 1, &RacecarSimulator::drive_callback, this);
 
@@ -227,6 +244,7 @@ public:
         map_sub = n.subscribe(map_topic, 1, &RacecarSimulator::map_callback, this);
 
         // Start a subscriber to listen to pose messages
+        ROS_INFO_STREAM("Simulator pose topic: "<<pose_topic);
         pose_sub = n.subscribe(pose_topic, 1, &RacecarSimulator::pose_callback, this);
         pose_rviz_sub = n.subscribe(pose_rviz_topic, 1, &RacecarSimulator::pose_rviz_callback, this);
 
@@ -303,6 +321,21 @@ public:
         ROS_INFO("Simulator constructed.");
     }
 
+    void update_real_pose(const ros::TimerEvent&) {
+        ros::Time timestamp = ros::Time::now();
+        /// Publish the pose as a transformation
+        pub_pose_transform(timestamp);
+
+        /// Publish the steering angle as a transformation so the wheels move
+        pub_steer_ang_transform(timestamp);
+
+        // Make an odom message as well and publish it
+        pub_odom(timestamp);
+
+        // TODO: make and publish IMU message
+        pub_imu(timestamp);
+
+    }
     void update_pose(const ros::TimerEvent&) {
 
         // simulate P controller
@@ -541,6 +574,8 @@ public:
         geometry_msgs::Quaternion q = msg.pose.orientation;
         tf2::Quaternion quat(q.x, q.y, q.z, q.w);
         state.theta = tf2::impl::getYaw(quat);
+        ROS_INFO_STREAM(state.x);
+
     }
 
     void pose_rviz_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg) {
