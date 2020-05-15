@@ -100,6 +100,7 @@ private:
     double goal_threshold;
     double dRRT;
     double step_length;
+    double rrt_bias;
     int rrt_steps;
     double collision_accuracy;
     bool rrt_tree_build;

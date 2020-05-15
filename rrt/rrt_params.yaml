@@ -19,7 +19,7 @@ path_lines: "/path_lines"
 waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
-rrt_steps: 150000
+rrt_steps: 300000
 step_length: 0.4
 goal_threshold: 0.5
 buff_area: 5
@@ -27,4 +27,5 @@ buff_area: 5
 #   d:= dimension of the workspace, 
 #   µ:= the Lebesque measure of the obstacle-free space 
 #   ζd:= the volume of the unit ball in the d-dimensional Euclidean space
-dRRT: 20.0
+dRRT: 33.0
+rrt_bias: 0.8

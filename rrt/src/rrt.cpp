@@ -37,7 +37,8 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/collision_accuracy", collision_accuracy);
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
-    nh_.getParam("rrt/dRRT", dRRT);    
+    nh_.getParam("rrt/dRRT", dRRT);
+    nh_.getParam("rrt/rrt_bias", rrt_bias);
 
     ROS_INFO_STREAM("rrt_steps: " << rrt_steps);
 
@@ -82,15 +83,17 @@ void RRT::rrt_loop()
     tree.push_back(start);
 
     int counter = 0;
+    int counterS = 0;
 
     while (counter < rrt_steps)
     {
-//DEBUG-------------------------------------------------------------------
-        if (counter*100/rrt_steps != (counter+1)*100/rrt_steps) ROS_INFO_STREAM("RRT Process :"<< counter*100/rrt_steps<<"%");
         
         std::vector<double> sampled_point = sample();
         int near = nearest(tree, sampled_point);
         Node x_new = steer(tree[near], sampled_point);
+        if (sampled_point[0]==q_goal[0] && sampled_point[1]==q_goal[1] ){
+            counterS++;
+        }
         if (!check_collision(tree[near], x_new))
         {  
             if(true)                           //true --> RRT* | false --> RRT
@@ -108,9 +111,17 @@ void RRT::rrt_loop()
             path = find_path(tree, x_new);
         }        
         counter++;
+//DEBUG-------------------------------------------------------------------
+        if (counter*100/rrt_steps != (counter+1)*100/rrt_steps){
+             ROS_INFO_STREAM("RRT Process :"<< counter*100/rrt_steps<<"%\n"
+                             "Percentage that sampled Point == q_goal: "<<counterS*100/counter<<"%");
+        }
     }
     if (!path.empty())
     {
+        Node goalNode = path.front();
+        path.clear();          
+        path = find_path(tree, goalNode);
         ROS_INFO_STREAM("RRT has finished.\nA path has been found!");
     }else
     {
@@ -194,9 +205,15 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
     //     sampled_point (std::vector<double>): the sampled point in free space
 std::vector<double> RRT::sample()
 {
-    std::vector<double> sampled_point;
+    std::vector<double> sampled_point;   
     sampled_point.push_back(x_dist(gen));
     sampled_point.push_back(y_dist(gen));
+    
+
+    if (rand()<=RAND_MAX*rrt_bias && path.empty()){
+        sampled_point[0] = q_goal[0];
+        sampled_point[1] = q_goal[1];
+    }
 
     return sampled_point;
 }
@@ -270,7 +287,6 @@ Node RRT::steer(Node &nearest_node, std::vector<double> &sampled_point)
         new_node.y = nearest_node.y + (sampled_point[1] - nearest_node.y) * step_length / distance;
         //ROS_INFO_STREAM("step");
     }
-    // TODO: fill in this method
 
     return new_node;
 }
@@ -298,6 +314,30 @@ bool RRT::check_collision(Node &nearest_node, Node &new_node)
 
     return false;
 }
+
+// bool RRT::check_collision(Node &nearest_node, Node &new_node)
+// {
+//     // This method returns a boolean indicating if the path between the
+//     // nearest node and the new node created from steering is collision free
+//     // Args:
+//     //    nearest_node (Node): nearest node on the tree to the sampled point
+//     //    new_node (Node): new node created from steering
+//     // Returns:
+//     //    collision (bool): true if in collision, false otherwise
+
+//     for (double i = collision_accuracy; i <= 1; i += collision_accuracy)
+//     {
+
+//         double x = nearest_node.x + (new_node.x - nearest_node.x) * i;
+//         double y = nearest_node.y + (new_node.y - nearest_node.y) * i;
+//         if (distance_transform(x, y) == 0)
+//         {
+//             return true;
+//         }
+//     }
+
+//     return false;
+// }
 
 bool RRT::is_goal(Node &latest_added_node)
 {
@@ -338,10 +378,6 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
     while (!n.is_root)
     {
         if (count < rrt_steps){
-
-// DEBUG---------------------------------------------------------------------------------------
-            //ROS_INFO_STREAM(count << ".\nn.x: "<<n.x<<"; n.y: "<<n.y<<"; n.cost: "<<n.cost<<"; parent: "<<n.parent);
-
             found_path.push_back(n);
             n = tree[n.parent];
             count++;
@@ -350,8 +386,6 @@ std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_nod
             ROS_ERROR_STREAM("path counter exceeds the rrt_steps "<<rrt_steps);
             break;
         }
-// DEBUG---------------------------------------------------------------------------------------
-            //ROS_INFO_STREAM(" path cost: "<<n.cost<<"; parent: "<<n.parent);
         
     }
     found_path.push_back(n);
@@ -453,7 +487,7 @@ std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
     // radius of the neighbourhood
     //double radius = dRRT*tree.size();
     int n = tree.size();
-    double radius = min(33*(log(n)/n)*1/2,step_length)+0.5; //to enlarge the neighbourhood a bit, +0.5.
+    double radius = min(dRRT*(log(n)/n)*1/2,step_length)+0.5; //to enlarge the neighbourhood a bit, +0.5.
 //DEBUG---------------------------------------------------------------------------------------------
     //ROS_INFO_STREAM("radius: "<<radius);
     
