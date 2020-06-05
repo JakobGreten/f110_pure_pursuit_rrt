@@ -14,13 +14,19 @@ marker_topic: "rrt_marker"
 tree_topic: "/tree"
 waypoint_viz_topic: "/wpt_viz"
 tree_nodes: "/tree_nodes"
-tree_lines: "/tree_lines"
+rrt_lines: "/rrt_lines"
+rrt_star_lines: "/rrt_star_lines"
 path_lines: "/path_lines"
 waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
-rrt_steps: 6000
+rrt_steps: 30000
 step_length: 0.8
-goal_threshold: 1.0
-
-buff_area: 8
+goal_threshold: 0.5
+buff_area: 5
+#dRRT needs to be greater than 4(µ(Xfree)/ζd)1/d, with 
+#   d:= dimension of the workspace, 
+#   µ:= the Lebesque measure of the obstacle-free space 
+#   ζd:= the volume of the unit ball in the d-dimensional Euclidean space
+dRRT: 33.0
+rrt_bias: 0.3

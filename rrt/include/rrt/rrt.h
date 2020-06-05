@@ -45,7 +45,7 @@ typedef struct Node
 {
     double x, y;
     double cost; // only used for RRT*
-    int parent;  // index of parent node in the tree vector
+    int parent, old_parent; // index of parent node in the tree vector
     bool is_root = false;
 } Node;
 
@@ -98,7 +98,9 @@ private:
 
     std::vector<double> q_goal;
     double goal_threshold;
+    double dRRT;
     double step_length;
+    double rrt_bias;
     int rrt_steps;
     double collision_accuracy;
     bool rrt_tree_build;
@@ -128,15 +130,17 @@ private:
     // RRT methods
     std::vector<double> sample();
     int nearest(std::vector<Node> &tree, std::vector<double> &sampled_point);
-    Node steer(int parent, Node &nearest_node, std::vector<double> &sampled_point);
+    Node steer(Node &nearest_node, std::vector<double> &sampled_point);
     bool check_collision(Node &nearest_node, Node &new_node);
     bool is_goal(Node &latest_added_node);
     std::vector<Node> find_path(std::vector<Node> &tree, Node &latest_added_node);
     
     // RRT* methods
-    double cost(std::vector<Node> &tree, Node &node);
+    void rrt_star(std::vector<Node> &tree, Node &node, int &near);
+    double cost(Node &parent, Node &node);
     double line_cost(Node &n1, Node &n2);
     std::vector<int> near(std::vector<Node> &tree, Node &node);
+
     void pub_tree(std::vector<Node> &tree);
     void map_callback(const nav_msgs::OccupancyGrid &msg);
     void xy_to_row_col(double x, double y, int *row, int *col) const;
