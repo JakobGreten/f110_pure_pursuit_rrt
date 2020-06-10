@@ -67,7 +67,7 @@ public:
         pose_y = pose_msg->pose.position.y;
 
         //target look-ahead-distance, might differ from l
-        double target_l = 1.4;
+        double target_l = 1.0;
         //double target_l = vel/max_speed*1.4+0.9;
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
@@ -170,9 +170,10 @@ public:
         else
         {
             double mult_factor = 16.9;
-            double add_factor = 1.0;
+            double add_factor = 0.8;
             double mult_part = max_speed - fabs(alpha) * mult_factor;
-            if (mult_part > 0)
+            //false muss noch weg!!!
+            if (false && mult_part > 0)
             {
                 vel = mult_part + add_factor;
             }

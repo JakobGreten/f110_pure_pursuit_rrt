@@ -21,9 +21,9 @@ waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
 rrt_steps: 30000
-step_length: 0.8
+step_length: 0.1
 goal_threshold: 0.5
-buff_area: 5
+buff_area: 4
 #dRRT needs to be greater than 4(µ(Xfree)/ζd)1/d, with 
 #   d:= dimension of the workspace, 
 #   µ:= the Lebesque measure of the obstacle-free space 
