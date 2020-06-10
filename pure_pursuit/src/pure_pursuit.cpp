@@ -58,7 +58,7 @@ public:
 
     void pose_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     {
-
+        publishSphere(0.0,0.0);
         sphere_marker_idx = 0;
         cylinder_marker_idx = 0;
         line_marker_idx = 0;
