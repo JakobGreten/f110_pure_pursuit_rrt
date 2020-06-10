@@ -574,7 +574,7 @@ public:
         geometry_msgs::Quaternion q = msg.pose.orientation;
         tf2::Quaternion quat(q.x, q.y, q.z, q.w);
         state.theta = tf2::impl::getYaw(quat);
-        ROS_INFO_STREAM(state.x);
+        //ROS_INFO_STREAM(state.x);
 
     }
 

@@ -149,7 +149,7 @@ void RRT::rrt_loop()
     // Returns:
 void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 {
-    std_msgs::Float64MultiArray path_msg;
+    /*std_msgs::Float64MultiArray path_msg;
 
     for (int i = 0; i < path.size(); i++)
     {
@@ -158,7 +158,7 @@ void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
         path_msg.data.push_back(path[i].y);
     }
     path_pub_.publish(path_msg);
-    pub_tree(tree);
+    pub_tree(tree);*/
 }
 
 //not being called currently
@@ -181,6 +181,19 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     std::vector<Node> tree;
     pose_x = pose_msg->pose.position.x;
     pose_y = pose_msg->pose.position.y;
+
+
+    //Kopiert aus scan callback. Vielleicht falsch hier
+    std_msgs::Float64MultiArray path_msg;
+
+    for (int i = 0; i < path.size(); i++)
+    {
+
+        path_msg.data.push_back(path[i].x);
+        path_msg.data.push_back(path[i].y);
+    }
+    path_pub_.publish(path_msg);
+    pub_tree(tree);
 
     // TODO: fill in the RRT main loop
 
