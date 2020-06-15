@@ -1,3 +1,8 @@
+// This file was copied from https://github.com/mlab-upenn/f110_rrt_skeleton
+// We made some changes to the vizalization to allow for the distinction and display of both 
+// a normal rrt and a rrt* tree
+
+
 #include "rrt/vis_tree.h"
 
 RRTVIS::~RRTVIS()
