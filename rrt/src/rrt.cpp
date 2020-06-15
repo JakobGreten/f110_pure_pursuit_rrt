@@ -558,15 +558,18 @@ void RRT::pub_tree(std::vector<Node> &tree)
     }
     tree_pub_.publish(tree_msg);
 }
-// This method receives the map and 
+// This method receives the map and prepares a threshhold map from it.
+// The generation of the threshold map was copied from the racecar_simulator package.
+// Args: 
+//     msg (nav_msgs::OccupancyGrid) the occupancy grid received
 void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
 {
     // Fetch the map parameters
     height = msg.info.height;
     width = msg.info.width;
     resolution = msg.info.resolution;
-    // Convert the ROS origin to a pose
 
+    // Convert the ROS origin to a pose
     origin.x = msg.info.origin.position.x;
     origin.y = msg.info.origin.position.y;
     geometry_msgs::Quaternion q = msg.info.origin.orientation;
@@ -604,17 +607,7 @@ void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
             dt[i] = 0; // Occupied
         }
     }
-    //DistanceTransform::distance_2d(dt, width, height, resolution);
-
-    /*// Send the map to the scanner
-            scan_simulator.set_map(
-                map,
-                height,
-                width,
-                resolution,
-                origin,
-                map_free_threshold);
-            map_exists = true;*/
+    
 
     ROS_INFO_STREAM("Map initialized");
     if (!rrt_tree_build)
@@ -623,6 +616,11 @@ void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
     }
 }
 
+
+// This method was copied from the racecar_simulator package. 
+// It is part of the collision detection system which is used for the simulation of the lidar scan.
+// We are using it for our regular collision detection and since we had to make a few minor changes,
+// we copied it instead of using the original methods because we try to make as little changes as possible to the simulator.
 double RRT::trace_ray(double x, double y, double theta_index) const
 {
     // Add 0.5 to make this operation round rather than floor
@@ -650,7 +648,10 @@ double RRT::trace_ray(double x, double y, double theta_index) const
 
     return total_distance;
 }
-
+// This method was copied from the racecar_simulator package. 
+// It is part of the collision detection system which is used for the simulation of the lidar scan.
+// We are using it for our regular collision detection and since we had to make a few minor changes,
+// we copied it instead of using the original methods because we try to make as little changes as possible to the simulator.
 double RRT::distance_transform(double x, double y) const
 {
     // Convert the pose to a grid cell
@@ -661,6 +662,10 @@ double RRT::distance_transform(double x, double y) const
     return dt[cell];
 }
 
+// This method was copied from the racecar_simulator package. 
+// It is part of the collision detection system which is used for the simulation of the lidar scan.
+// We are using it for our regular collision detection and since we had to make a few minor changes,
+// we copied it instead of using the original methods because we try to make as little changes as possible to the simulator.
 void RRT::xy_to_row_col(double x, double y, int *row, int *col) const
 {
     // Translate the state by the origin
@@ -686,11 +691,19 @@ void RRT::xy_to_row_col(double x, double y, int *row, int *col) const
     }
 }
 
+// This method was copied from the racecar_simulator package. 
+// It is part of the collision detection system which is used for the simulation of the lidar scan.
+// We are using it for our regular collision detection and since we had to make a few minor changes,
+// we copied it instead of using the original methods because we try to make as little changes as possible to the simulator.
 int RRT::row_col_to_cell(int row, int col) const
 {
     return row * width + col;
 }
 
+// This method was copied from the racecar_simulator package. 
+// It is part of the collision detection system which is used for the simulation of the lidar scan.
+// We are using it for our regular collision detection and since we had to make a few minor changes,
+// we copied it instead of using the original methods because we try to make as little changes as possible to the simulator.
 int RRT::xy_to_cell(double x, double y) const
 {
     int row, col;

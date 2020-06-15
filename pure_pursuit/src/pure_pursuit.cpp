@@ -283,16 +283,22 @@ public:
 
     std::vector<double> trangulateTarget(double a_x, double a_y, double b_x, double b_y, double c_x, double c_y, double l)
     {
+        //lengths of triangle
         double a = distance(c_x, c_y, b_x, b_y);
         double b = distance(c_x, c_y, a_x, a_y);
         double c = distance(b_x, b_y, a_x, a_y);
 
-        //
+        //cos of angle at point a
         double cosalpha = (b * b + c * c - a * a) / 2 * b * c;
+
+        //distance between point A and target point. Up to two solutions 
         double c1 = b * cosalpha + sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
         double c2 = b * cosalpha - sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
 
+        //chosen distance between A and target point
         double c3;
+        
+        //chose max(c1,c2) but verify that this is between 0 and c 
         if ((c1 < c && c1 > c2 && c1 > 0) || (c2 > c && c1 < c && c1 > 0))
         {
             c3 = c1;
@@ -301,24 +307,41 @@ public:
         {
             c3 = c2;
         }
+        //if both c1 and c2 are not in range, chose c
         else
         {
             c3 = c;
         }
 
+        //calculate coordinates of target point using c3
         double t_x = a_x + (b_x - a_x) / c * c3;
         double t_y = a_y + (b_y - a_y) / c * c3;
-        //publishSphere(t_x, t_y);
+
+
         std::vector<double> target;
         target.push_back(t_x);
         target.push_back(t_y);
         return target;
     }
+
+    //This callback receives the path from the rrt node
+    // Args:
+    //   msg (std_msgs::Float64MultiArray): the path calculated by rrt
     void path_callback(const std_msgs::Float64MultiArray::ConstPtr &msg)
     {
+        //update path
         path = msg->data;
         //std::cout << "[ INFO] [" << ros::Time::now() << "]: goal" << goal_reached << std::endl;
     }
+
+
+
+    //Calculates the distance between two points
+    // Args:
+    //   a_x (double): x coordinate of point a
+    //   a_y (double): y coordinate of point a
+    //   b_x (double): x coordinate of point b
+    //   b_y (double): y coordinate of point b
     double distance(double ax, double ay, double bx, double by)
     {
         double xdif = ax - bx;
@@ -327,6 +350,10 @@ public:
         return distance;
     }
 
+    // Publishes a sphere for debugging
+    // Args:
+    //   x (double): x coordinate of sphere
+    //   y (double): y coordinate of sphere
     void publishSphere(double x, double y)
     {
         visualization_msgs::Marker marker;
@@ -360,6 +387,13 @@ public:
         marker.lifetime = ros::Duration();
         vis_pub.publish(marker);
     }
+
+    // Publishes a line for debugging between point a and b
+    // Args:
+    //   a_x (double): x coordinate of point a
+    //   a_y (double): y coordinate of point a
+    //   b_x (double): x coordinate of point b
+    //   b_y (double): y coordinate of point b
     void publishLine(double ax, double ay, double bx, double by)
     {
         visualization_msgs::Marker marker, points;
@@ -406,6 +440,12 @@ public:
         marker.lifetime = ros::Duration();
         vis_pub.publish(marker);
     }
+
+    // Publishes a cylinder for debugging with given diameter
+    // Args:
+    //   x (double): x coordinate of sphere
+    //   y (double): y coordinate of sphere
+    //   diameter (double): diameter of cylinder
     void publishCylinder(double x, double y, double diameter)
     {
         visualization_msgs::Marker marker;
@@ -434,16 +474,23 @@ public:
         marker.color.g = 0.5f;
         marker.color.b = 0.5f;
         marker.color.a = 0.5 / pow(diameter, 0.1);
-        //ROS_INFO_STREAM(diameter);
+
         marker.lifetime = ros::Duration();
         vis_pub.publish(marker);
     }
+
+    // This method returns the sign of T
+    // Args:
+    //   T(typename): any variable
+    // Returns:
+    //  sign (int) sign of T
     template <typename T>
     int sgn(T val)
     {
         return (T(0) < val) - (val < T(0));
     }
 };
+//Main method for pure pursuit. Starts ros node
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "pure_pursuit_node");
