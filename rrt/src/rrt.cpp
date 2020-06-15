@@ -1,6 +1,5 @@
-// This class creates a rrt tree and calculates a trajectory to a given goal.
+// This class creates an rrt tree and calculates a trajectory to a given goal.
 #include "rrt/rrt.h"
-//#include "rrt/pose_2d.hpp"
 #include <random>
 #include <iostream>
 using namespace std;
@@ -43,6 +42,7 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 
 
     ROS_INFO_STREAM("rrt_steps: " << rrt_steps << " pose_topic: " << pose_topic);
+
     // ROS publishers
     vis_pub = nh_.advertise<visualization_msgs::Marker>(marker_topic, 0);
     tree_pub_ = nh_.advertise<std_msgs::Float64MultiArray>(tree_topic, 0);
@@ -55,11 +55,13 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     click_sub = nh_.subscribe(clicked_point_topic, 1, &RRT::clicked_point_callback, this);
     nav_goal_sub = nh_.subscribe(nav_goal_topic, 1, &RRT::nav_goal_callback, this);
 
+    //random number generator
     gen = std::mt19937(123);
     x_dist = std::uniform_real_distribution<double>(-35.0, 35.0);
     y_dist = std::uniform_real_distribution<double>(-35.0, 35.0);
 
     rrt_tree_build = false;
+
     //starting goal
     q_goal.push_back(22.0);
     q_goal.push_back(-1.8);
@@ -68,9 +70,6 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 }
 
 // The loop where the rrt tree is created
-    // Args:
-    //    
-    // Returns:
 void RRT::rrt_loop()
 {
     tree.clear();
@@ -83,21 +82,29 @@ void RRT::rrt_loop()
     start.is_root = true;
     tree.push_back(start);
 
+    bool use_rrt_star=true; //true --> RRT* | false --> RRT
+
     int counter = 0;
     int counterS = 0;
-
+    //end path finding after rrt_steps is reached
     while (counter < rrt_steps)
     {
-        
+        //generate random sample point
         std::vector<double> sampled_point = sample();
+
+        //get nearest node
         int near = nearest(tree, sampled_point);
+        
+        //steer towards that node
         Node x_new = steer(tree[near], sampled_point);
+        
         if (sampled_point[0]==q_goal[0] && sampled_point[1]==q_goal[1] ){
             counterS++;
         }
+        //check for collisions
         if (!check_collision(tree[near], x_new))
         {  
-            if(true)                           //true --> RRT* | false --> RRT
+            if(use_rrt_star)                           
             {
                 rrt_star(tree,x_new,near);
             }
@@ -106,6 +113,7 @@ void RRT::rrt_loop()
                 tree.push_back(x_new);
             }            
         }
+        //check if goal is reached
         if (is_goal(x_new))
         {
             path.clear();          
@@ -118,6 +126,7 @@ void RRT::rrt_loop()
                              "Percentage that sampled Point == q_goal: "<<counterS*100/counter<<"%");
         }
     }
+    //calculate path if found
     if (!path.empty())
     {
         Node goalNode = path.front();
@@ -132,10 +141,10 @@ void RRT::rrt_loop()
     rrt_tree_build = true;
 }
 
-// The scan callback, update your occupancy grid here
+// The scan callback, currently not used.
     // Args:
     //    scan_msg (*LaserScan): pointer to the incoming scan message
-    // Returns:
+    
 void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 {
     /*std_msgs::Float64MultiArray path_msg;
@@ -150,29 +159,18 @@ void RRT::scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
     pub_tree(tree);*/
 }
 
-//not being called currently
 
-// The pose callback when subscribed to particle filter's inferred pose
-    // The RRT main loop happens here
+
+// The pose callback when subscribed to pose topic. Publishes path and tree.
     // Args:
     //    pose_msg (*PoseStamped): pointer to the incoming pose message
-    // Returns:
 void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
 {
-    
-    //
-    //double distance_to_nearest = distance_transform(pose_msg->pose.position.x, pose_msg->pose.position.y);
-    //ROS_INFO_STREAM("Distance: " << distance_to_nearest);
-    //double distance_wall = trace_ray(pose_msg->pose.position.x, pose_msg->pose.position.y,0);
-    //ROS_INFO_STREAM("Distance: " << distance_wall);
-
-    // tree as std::vector
-    //std::vector<Node> tree;
+    //update pose
     pose_x = pose_msg->pose.position.x;
     pose_y = pose_msg->pose.position.y;
 
-
-    //Kopiert aus scan callback. Vielleicht falsch hier
+    //prepare and publish path message
     std_msgs::Float64MultiArray path_msg;
 
     for (int i = 0; i < path.size(); i++)
@@ -182,22 +180,27 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
         path_msg.data.push_back(path[i].y);
     }
     path_pub_.publish(path_msg);
+
+    //publish rrt tree
     pub_tree(tree);
 
-    // TODO: fill in the RRT main loop
 
-    // path found as Path message
 }
 
+//callback for rviz location. Used for debugging
+// Args:
+    //    pose_msg (*PoseStamped): pointer to the incoming pose message
 void RRT::clicked_point_callback(const geometry_msgs::PointStamped &pose_msg)
 {
 
     double distance_to_nearest = distance_transform(pose_msg.point.x, pose_msg.point.y);
     ROS_INFO_STREAM("Distance: " << distance_to_nearest);
-    //double distance_wall = trace_ray(pose_msg->pose.position.x, pose_msg->pose.position.y,0);
-    //ROS_INFO_STREAM("Distance: " << distance_wall);
+    
 }
 
+//callback for the new nav goal
+// Args:
+    //    pose_msg (*PoseStamped): pointer to the incoming pose message
 void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
 {
     double x = pose_msg.pose.position.x;
@@ -210,6 +213,7 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
     tree.clear();
     path.clear();
 
+    //if the nav goal is inside of an obstacle, do not look for path
     if(distance_transform(x, y) == 0){
         ROS_INFO_STREAM("New nav goal is located in obstacle. No path finding possible");
     }else{
@@ -218,18 +222,16 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
 }
 
 // This method returns a sampled point from the free space
-    // You should restrict so that it only samples a small region
-    // of interest around the car's current position
-    // Args:
     // Returns:
     //     sampled_point (std::vector<double>): the sampled point in free space
 std::vector<double> RRT::sample()
 {
+    
     std::vector<double> sampled_point;   
     sampled_point.push_back(x_dist(gen));
     sampled_point.push_back(y_dist(gen));
     
-
+    //create bias by setting some of the samples to the goal position
     if (rand()<=RAND_MAX*rrt_bias && path.empty()){
         sampled_point[0] = q_goal[0];
         sampled_point[1] = q_goal[1];
@@ -249,6 +251,8 @@ int RRT::nearest(std::vector<Node> &tree, std::vector<double> &sampled_point)
     
     int nearest_node = 0;
     double nearest_distance = 9999999;
+
+    //iterate through tree and find neares node
     for (int i = 0; i < tree.size(); i++)
     {
 
@@ -276,12 +280,8 @@ double RRT::distanceNodePoint(Node node, std::vector<double> &point)
     return sqrt(xdif * xdif + ydif * ydif);
 }
 
-/*  The function steer:(x,y)->z returns a point such that z is “closer”
-    to y than x is. The point z returned by the function steer will be
-    such that z minimizes ||z−y|| while at the same time maintaining
-    ||z−x|| <= max_expansion_dist, for a prespecified max_expansion_dist > 0
-
-    basically, expand the tree towards the sample point (within a max dist)
+/*  Expands the tree towards the sample point (within a max dist). 
+    Creates new node which is in between nearest and sample point.
 
     Args:
        nearest_node (Node): nearest node on the tree to the sampled point
