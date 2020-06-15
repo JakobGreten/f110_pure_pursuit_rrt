@@ -169,11 +169,11 @@ public:
         }
         else
         {
-            double mult_factor = 16.9;
-            double add_factor = 0.8;
-            double mult_part = max_speed - fabs(alpha) * mult_factor;
-            //false muss noch weg!!!
-            if (false && mult_part > 0)
+            double mult_factor = 6.0;
+            double add_factor = 0.5;
+            double mult_part = 0.9 - fabs(alpha* alpha) * mult_factor;
+
+            if (mult_part > 0)
             {
                 vel = mult_part + add_factor;
             }
@@ -181,9 +181,10 @@ public:
             {
                 vel = add_factor;
             }
+            //ROS_INFO_STREAM_ONCE(vel);
+
         }
         
-        //ROS_INFO_STREAM_ONCE(vel);
 
         //double omega = 2 * vel * sin(alpha) / l;
         double curvature = 2 * sin(alpha) / l;

@@ -1,28 +1,20 @@
-// ESE 680
-// RRT assignment
-// Author: Hongrui Zheng
-
-// This file contains the class definition of tree nodes and RRT
-// Before you start, please read: https://arxiv.org/pdf/1105.1186.pdf
-// Make sure you have read through the header file as well
+// This class creates a rrt tree and calculates a trajectory to a given goal.
 #include "rrt/rrt.h"
 //#include "rrt/pose_2d.hpp"
-
 #include <random>
-
 #include <iostream>
 using namespace std;
 
 // Destructor of the RRT class
 RRT::~RRT()
 {
-    // Do something in here, free up used memory, print message, etc.
     ROS_INFO("RRT shutting down");
 }
 
 // Constructor of the RRT class
 RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 {
+    //get RRT Parameters
     nh_.getParam("rrt/pose_topic", pose_topic);
     nh_.getParam("rrt/scan_topic", scan_topic);
     nh_.getParam("rrt/path_topic", path_topic);
@@ -39,14 +31,11 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/dRRT", dRRT);
     nh_.getParam("rrt/rrt_bias", rrt_bias);
 
-    ROS_INFO_STREAM("rrt_steps: " << rrt_steps);
-
-
+    //differentiate between simualted and real launch
     bool real = false;
     std::string real_pose_topic = "";
     nh_.getParam("/real", real);
     nh_.getParam("/real_pose_topic", real_pose_topic);
-
     if(real){
         pose_topic = real_pose_topic;
         ROS_INFO_STREAM("Real RRT launch");
@@ -178,7 +167,7 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     //ROS_INFO_STREAM("Distance: " << distance_wall);
 
     // tree as std::vector
-    std::vector<Node> tree;
+    //std::vector<Node> tree;
     pose_x = pose_msg->pose.position.x;
     pose_y = pose_msg->pose.position.y;
 
@@ -213,13 +202,19 @@ void RRT::nav_goal_callback(const geometry_msgs::PoseStamped &pose_msg)
 {
     double x = pose_msg.pose.position.x;
     double y = pose_msg.pose.position.y;
+
     q_goal.clear();
     q_goal.push_back(x);
     q_goal.push_back(y);
     ROS_INFO_STREAM("New nav goal set to X: " << x << " Y: " << y);
     tree.clear();
     path.clear();
-    rrt_loop();
+
+    if(distance_transform(x, y) == 0){
+        ROS_INFO_STREAM("New nav goal is located in obstacle. No path finding possible");
+    }else{
+        rrt_loop();
+    }
 }
 
 // This method returns a sampled point from the free space
