@@ -8,29 +8,33 @@
 #include <cmath>
 #include <float.h>
 #include <tf/tf.h>
-
+//This class implements a pure pursuit controller for the f110 platform
 class PurePursuit
 {
 private:
     ros::NodeHandle n;
+    //Subscribers
     ros::Subscriber pose_sub;
     ros::Subscriber path_sub;
 
-    // Publish drive data
+    // Publishers
     ros::Publisher drive_pub;
-
     ros::Publisher vis_pub;
 
     double max_speed, max_steering_angle, pose_x, pose_y, wheelbase, vel;
     int sphere_marker_idx, cylinder_marker_idx, line_marker_idx;
     bool goal_reached = false;
+    //rrt path
     std::vector<double> path;
 
 public:
+    //Constructor of pure pursuit. Initiates publishers and subscribers
     PurePursuit()
     {
         n = ros::NodeHandle();
         std::string drive_topic, pose_topic;
+
+        //get parameters
         n.getParam("pure_pursuit_node/pp_drive_topic", drive_topic);
         //n.getParam("/pose_topic", pose_topic);
         pose_topic = "/gt_pose"; //other pose topic not working
@@ -39,76 +43,94 @@ public:
         n.getParam("pure_pursuit_node/max_steering_angle", max_steering_angle);
         n.getParam("pure_pursuit_node/wheelbase", wheelbase);
 
+        //differentiate between simualted and real launch
         bool real = false;
         std::string real_pose_topic = "";
         n.getParam("/real", real);
         n.getParam("/real_pose_topic", real_pose_topic);
-
         if(real){
             pose_topic = real_pose_topic;
             ROS_INFO_STREAM("Real Pure Pursuit launch");
         }
 
+        //initiate publishers
         drive_pub = n.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 10);
         vis_pub = n.advertise<visualization_msgs::Marker>("pure_pursuit_marker", 10);
 
+        //initiate subscribers
         pose_sub = n.subscribe(pose_topic, 10, &PurePursuit::pose_callback, this);
         path_sub = n.subscribe("/path", 10, &PurePursuit::path_callback, this);
     }
 
+    // This callback receives the current position. 
+    //Initiates the calculation of new steering angle and velocity 
     void pose_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     {
+        //publish origin of coordinate frame
         publishSphere(0.0,0.0);
+
+        //indexes of markers for rviz
         sphere_marker_idx = 0;
         cylinder_marker_idx = 0;
         line_marker_idx = 0;
-
+        
+        //update pose
         pose_x = pose_msg->pose.position.x;
         pose_y = pose_msg->pose.position.y;
 
         //target look-ahead-distance, might differ from l
         double target_l = 1.0;
         //double target_l = vel/max_speed*1.4+0.9;
+
+
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
         double prev_node_x;
         double prev_node_y;
+        //difference from l from prev node
         double prev_diff_from_l;
 
         double min_diff_x;
         double min_diff_y;
-        double min_diff_from_l = DBL_MAX;
 
+        //current minimal diff from l from all nodes
+        double min_diff_from_l = DBL_MAX;
+        
+        //node currently being tracked
         double track_node_x = NAN;
         double track_node_y = NAN;
 
+        //look ahead point is located between a and b
         double a_x = NAN;
         double a_y = NAN;
         double b_x = NAN;
         double b_y = NAN;
-        if(path.size()>0&&distance(pose_x,pose_y,path[0],path[1])<0.6){
+
+        //check if goal is already reached
+        if(path.size()>0 && distance(pose_x,pose_y,path[0],path[1])<0.6){
             goal_reached = true;
         }else{
             goal_reached = false;
         }
-        if (path.size() == 0 && false)
-        {
-            ROS_INFO("Empty path");
-        }
+
+        //iterate through path and look for the point with a distance of l towards current pose
         for (int i = 0; (i * 2) < path.size(); i++)
         {
 
-            //ROS_INFO_STREAM("node" << i);
             double node_x = path[path.size() - 2 * i - 2];
             double node_y = path[path.size() - 2 * i - 1];
-            double distance_to_node = distance(pose_x, pose_y, node_x, node_y);
-            double diff_from_l = distance_to_node - target_l;
 
+            
+            double distance_to_node = distance(pose_x, pose_y, node_x, node_y);
+
+            //difference form target distance
+            double diff_from_l = distance_to_node - target_l;
+            
+            //if the sign of diff_from_l changes, the target point is located between this
+            //and the previous node
             if (sgn(diff_from_l) != sgn(prev_diff_from_l))
             {
-                //track_node_x = node_x;
-                //track_node_y = node_y;
                 b_x = node_x;
                 b_y = node_y;
                 a_x = prev_node_x;
@@ -116,9 +138,9 @@ public:
                 
             }
 
+            //check if this is the smallest diff_from_l
             if (diff_from_l < min_diff_from_l)
             {
-                //ROS_INFO_STREAM(diff_from_l);
                 min_diff_from_l = diff_from_l;
                 min_diff_x = node_x;
                 min_diff_y = node_y;
@@ -128,11 +150,14 @@ public:
             prev_node_x = node_x;
             prev_node_y = node_y;
         }
+
+        //if no point with exactly l diff was found, chose the node closest to target distance
         if (isnanl(a_x))
         {
             track_node_x = min_diff_x;
             track_node_y = min_diff_y;
         }
+        //otherwise calculate exact coodinates of target point betwen a and b.
         else
         {
             publishSphere(a_x, a_y);
@@ -141,19 +166,22 @@ public:
             track_node_x = target[0];
             track_node_y = target[1];
         }
-        //actual look-ahead-distance
+
+        //actual look-ahead-distance, might differ from target_l
         double l = distance(pose_x, pose_y, track_node_x, track_node_y);
-        //ROS_INFO_STREAM("l"<<l);
+
+        //publish track node for debugging
         publishSphere(track_node_x, track_node_y);
+        //publish look ahead distance
         publishLine(pose_x, pose_y, track_node_x, track_node_y);
-        // TODO: transform goal point to vehicle frame of reference
 
-        // TODO: calculate curvature/steering angle
-
+        //current angle of car
         double theta = tf::getYaw(pose_msg->pose.orientation);
+
+        //angle between orientation of car and target node
         double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
-        //vel = max_speed/7;
-        //ROS_INFO_STREAM("alpha" << alpha << " vel" << vel);
+
+        //limit alpha in interval [-pi,pi]
         if (alpha > M_PI)
         {
             alpha -= 2 * M_PI;
@@ -162,17 +190,23 @@ public:
         {
             alpha += 2 * M_PI;
         }
-        //vel = max_speed / (pow(1.1, fabs(alpha)))+0.3;
+
+        //stop the car if the goal is reached
         if (goal_reached)
         {
             vel = 0;
         }
+        //Calculate new velocity
         else
-        {
+        {   
+            //parameters for velocity. Determined through trial and error
             double mult_factor = 6.0;
             double add_factor = 0.5;
+
+            //velocity decreases quadratically to alpha
             double mult_part = 0.9 - fabs(alpha* alpha) * mult_factor;
 
+            //make sure velocity is positive
             if (mult_part > 0)
             {
                 vel = mult_part + add_factor;
@@ -181,20 +215,18 @@ public:
             {
                 vel = add_factor;
             }
-            //ROS_INFO_STREAM_ONCE(vel);
 
         }
         
 
-        //double omega = 2 * vel * sin(alpha) / l;
         double curvature = 2 * sin(alpha) / l;
         double omega = atan(curvature * wheelbase);
 
-        //Calculate center of turning circle
-        //double r = fabs(distance(pose_x, pose_y, track_node_x, track_node_y) / (2 * sin(alpha)));
+        //Calculate radius and center of turning circle
         double r = fabs(1 / curvature);
-        //vel = 2*r;
 
+        //Calculate cooridnates of the center of circle with radius r, which lines up
+        //with both the pose of the car and the target point. This is only used for visualization.
         double xa = 0.5 * (track_node_x - pose_x);
         double ya = 0.5 * (track_node_y - pose_y);
         double a = sqrt(xa * xa + ya * ya);
@@ -203,6 +235,9 @@ public:
         double y0 = pose_y + ya;
         double x_center;
         double y_center;
+
+        //Turning circle can be on both sides of the trajectory.
+        //Picking the correct one based on steering angle
         if (omega > 0)
         {
             x_center = x0 - b * ya / a;
@@ -213,23 +248,38 @@ public:
             x_center = x0 + b * ya / a;
             y_center = y0 - b * xa / a;
         }
+        //limit steering angle in correct interval
         if(omega>0.4189){
             omega = 0.4189;
         }else if (omega<-0.4189){
             omega = -0.4189;
         }
         //ROS_INFO_STREAM("xcenter: " << x_center << " ycenter" << y_center << "test" << r);
+        
+        //publish turning circle
         publishCylinder(x_center, y_center, r * 2);
 
         //ROS_INFO_STREAM("Orientation: " << theta * 180 / M_PI << " Alpha: " << alpha * 180 / M_PI << " Omega: " << omega * 180 / M_PI);
 
+        //publish drive message with velocity and steering angle
         drive_msg.speed = vel;
         drive_msg.steering_angle = omega;
         drive_st_msg.drive = drive_msg;
         drive_pub.publish(drive_st_msg);
-
-        // TODO: publish drive message, don't forget to limit the steering angle between -0.4189 and 0.4189 radians
     }
+
+    // This method triangulates the target point between a and b, 
+    // which is also at a distance of l to point c
+    // Args:
+    //   a_x (double): x coordinate of point a
+    //   a_y (double): y coordinate of point a
+    //   b_x (double): x coordinate of point b
+    //   b_y (double): y coordinate of point b
+    //   c_x (double): x coordinate of point c
+    //   c_y (double): y coordinate of point c
+    //   l (double): target distance l
+    // Returns:
+    //   target (std::vector<double> ) triangulated target point
 
     std::vector<double> trangulateTarget(double a_x, double a_y, double b_x, double b_y, double c_x, double c_y, double l)
     {
@@ -237,6 +287,7 @@ public:
         double b = distance(c_x, c_y, a_x, a_y);
         double c = distance(b_x, b_y, a_x, a_y);
 
+        //
         double cosalpha = (b * b + c * c - a * a) / 2 * b * c;
         double c1 = b * cosalpha + sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
         double c2 = b * cosalpha - sqrt(b * b * cosalpha * cosalpha - b * b + l * l);
@@ -245,12 +296,10 @@ public:
         if ((c1 < c && c1 > c2 && c1 > 0) || (c2 > c && c1 < c && c1 > 0))
         {
             c3 = c1;
-            //ROS_INFO_STREAM("c1");
         }
         else if (c2 < c && c2 > 0)
         {
             c3 = c2;
-            //ROS_INFO_STREAM("c2");
         }
         else
         {
@@ -274,7 +323,8 @@ public:
     {
         double xdif = ax - bx;
         double ydif = ay - by;
-        return sqrt(xdif * xdif + ydif * ydif);
+        double distance = sqrt(xdif * xdif + ydif * ydif);
+        return distance;
     }
 
     void publishSphere(double x, double y)

@@ -10,7 +10,7 @@ RRT::~RRT()
     ROS_INFO("RRT shutting down");
 }
 
-// Constructor of the RRT class
+// Constructor of the RRT class. Initiates subscribers and publishers.
 RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
 {
     //get RRT Parameters
@@ -303,29 +303,30 @@ Node RRT::steer(Node &nearest_node, std::vector<double> &sampled_point)
     }
     else
     {
+        //steer towards sample point with a maximum of step_length
         new_node.x = nearest_node.x + (sampled_point[0] - nearest_node.x) * step_length / distance;
         new_node.y = nearest_node.y + (sampled_point[1] - nearest_node.y) * step_length / distance;
-        //ROS_INFO_STREAM("step");
     }
 
     return new_node;
 }
 
-bool RRT::check_collision(Node &nearest_node, Node &new_node)
-{
-    // This method returns a boolean indicating if the path between the
+// This method returns a boolean indicating if the path between the
     // nearest node and the new node created from steering is collision free
     // Args:
     //    nearest_node (Node): nearest node on the tree to the sampled point
     //    new_node (Node): new node created from steering
     // Returns:
     //    collision (bool): true if in collision, false otherwise
-
+bool RRT::check_collision(Node &nearest_node, Node &new_node)
+{
+    //sample in regular intervals and check if a collision occurs
     for (double i = collision_accuracy; i <= 1; i += collision_accuracy)
     {
 
         double x = nearest_node.x + (new_node.x - nearest_node.x) * i;
         double y = nearest_node.y + (new_node.y - nearest_node.y) * i;
+        //check for collision
         if (distance_transform(x, y) == 0)
         {
             return true;
@@ -335,41 +336,16 @@ bool RRT::check_collision(Node &nearest_node, Node &new_node)
     return false;
 }
 
-// bool RRT::check_collision(Node &nearest_node, Node &new_node)
-// {
-//     // This method returns a boolean indicating if the path between the
-//     // nearest node and the new node created from steering is collision free
-//     // Args:
-//     //    nearest_node (Node): nearest node on the tree to the sampled point
-//     //    new_node (Node): new node created from steering
-//     // Returns:
-//     //    collision (bool): true if in collision, false otherwise
 
-//     for (double i = collision_accuracy; i <= 1; i += collision_accuracy)
-//     {
-
-//         double x = nearest_node.x + (new_node.x - nearest_node.x) * i;
-//         double y = nearest_node.y + (new_node.y - nearest_node.y) * i;
-//         if (distance_transform(x, y) == 0)
-//         {
-//             return true;
-//         }
-//     }
-
-//     return false;
-// }
-
-bool RRT::is_goal(Node &latest_added_node)
-{
-    // This method checks if the latest node added to the tree is close
-    // enough (defined by goal_threshold) to the goal so we can terminate
-    // the search and find a path
+// This method checks if the latest node added to the tree is close
+// enough (defined by goal_threshold) to the goal so we can terminate
+// the search and find a path
     // Args:
     //   latest_added_node (Node): latest addition to the tree
-    //   goal_x (double): x coordinate of the current goal
-    //   goal_y (double): y coordinate of the current goal
     // Returns:
     //   close_enough (bool): true if node close enough to the goal
+bool RRT::is_goal(Node &latest_added_node)
+{
     bool close_enough = false;
     
     double dist_goal = distanceNodePoint(latest_added_node, q_goal);
@@ -381,17 +357,18 @@ bool RRT::is_goal(Node &latest_added_node)
     return close_enough;
 }
 
+// This method traverses the tree from the node that has been determined
+// as goal
+// Args:
+//   tree (sdt::vector<Node>): the rrt tree
+//   latest_added_node (Node): latest addition to the tree that has been
+//      determined to be close enough to the goal
+// Returns:
+//   path (std::vector<Node>): the vector that represents the order of
+ //      of the nodes traversed as the found path
 std::vector<Node> RRT::find_path(std::vector<Node> &tree, Node &latest_added_node)
 {
-    //ROS_INFO_STREAM("search path");
-    // This method traverses the tree from the node that has been determined
-    // as goal
-    // Args:
-    //   latest_added_node (Node): latest addition to the tree that has been
-    //      determined to be close enough to the goal
-    // Returns:
-    //   path (std::vector<Node>): the vector that represents the order of
-    //      of the nodes traversed as the found path
+
     std::vector<Node> found_path;
     Node n = latest_added_node;
     int count = 0;
@@ -494,7 +471,8 @@ double RRT::line_cost(Node &n1, Node &n2)
 }
 
 // This method returns the set of Nodes in the neighborhood of a node.
-// currently it has a time complexity of O(n^2), but 
+// Currently it has a time complexity of O(n^2), but this could be optimized
+// through a search tree.
 // Args:
 //   tree (std::vector<Node>): the current tree
 //   node (Node): the node to find the neighborhood for
@@ -513,7 +491,7 @@ std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
     
     double dist;
     std::vector<int> neighborhood;
-
+    //iterate through tree to find nodes that are close to the target
     for(int i= 0; i<tree.size(); i++){
         dist = sqrt(fabs(pow(node.x-tree[i].x,2)+pow(node.y-tree[i].y,2)));
         if(dist < radius){
@@ -523,7 +501,10 @@ std::vector<int> RRT::near(std::vector<Node> &tree, Node &node)
 
     return neighborhood;
 }
-// For visualization
+// Publishes the rrt tree. 
+// This method is a modified version from here:https://github.com/mlab-upenn/f110_rrt_skeleton/blob/master/src/rrt.cpp
+// Args:
+//   tree (std::vector<Node>): the current tree
 void RRT::pub_tree(std::vector<Node> &tree)
 {
     // publish the current tree as a float array topic
@@ -571,13 +552,13 @@ void RRT::pub_tree(std::vector<Node> &tree)
         //parent
         tree_msg.data.push_back(px);
         tree_msg.data.push_back(py);
-        //old parent
+        //old parent (to differentiate between rrt and rrt*)
         tree_msg.data.push_back(opx);
         tree_msg.data.push_back(opy);
     }
     tree_pub_.publish(tree_msg);
 }
-
+// This method receives the map and 
 void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
 {
     // Fetch the map parameters
