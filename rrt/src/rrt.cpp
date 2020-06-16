@@ -101,9 +101,19 @@ void RRT::rrt_loop()
         if (sampled_point[0]==q_goal[0] && sampled_point[1]==q_goal[1] ){
             counterS++;
         }
+
+        //check if node is directly behind the car
+        double dist_to_pose = sqrt(pow(pose_x-x_new.x,2)+pow(pose_y-x_new.y,2));
+        //angle between orientation of car and x_new
+        double alpha = atan2((x_new.y - pose_y), (x_new.x - pose_x)) - pose_theta;
+        bool behind_car = dist_to_pose<0.4 && fabs(alpha)>0.6;
+        //ROS_INFO_STREAM("dist"<<dist_to_pose<<" alpha "<<alpha<<" behind"<<behind_car<<"   fabs"<<fabs(alpha)<<"close"<<(dist_to_pose<1.0));
+
         //check for collisions
-        if (!check_collision(tree[near], x_new))
+        if (!check_collision(tree[near], x_new) && !behind_car)
         {  
+            
+
             if(use_rrt_star)                           
             {
                 rrt_star(tree,x_new,near);
@@ -169,6 +179,10 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     //update pose
     pose_x = pose_msg->pose.position.x;
     pose_y = pose_msg->pose.position.y;
+    
+    //current angle of car
+    pose_theta = tf::getYaw(pose_msg->pose.orientation);
+    
 
     //prepare and publish path message
     std_msgs::Float64MultiArray path_msg;

@@ -94,7 +94,7 @@ private:
     std::vector<Node> tree;
     std::vector<Node> path;
 
-    double pose_x, pose_y;
+    double pose_x, pose_y, pose_theta;
 
     std::vector<double> q_goal;
     double goal_threshold;

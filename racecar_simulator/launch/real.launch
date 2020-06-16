@@ -11,7 +11,7 @@
   <!--<arg name="map" default="$(find racecar_simulator)/maps/stata_basement.yaml"/>-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/building_31.yaml"/>-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/labor.yaml"/>-->
-  <arg name="map" default="$(find racecar_simulator)/maps/labor_obstacle.yaml"/>
+  <arg name="map" default="$(find racecar_simulator)/maps/labor_obstacle2.yaml"/>
 
   <group ns="vesc">
     <include file="$(find racecar)/launch/mux.launch" />

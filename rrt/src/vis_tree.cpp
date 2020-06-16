@@ -52,7 +52,7 @@ void RRTVIS::tree_callback(const std_msgs::Float64MultiArray::ConstPtr &msg)
     visualization_msgs::Marker rrt_star_marker;
     rrt_star_marker.header.frame_id = map_topic;
     rrt_star_marker.type = rrt_star_marker.LINE_LIST;
-    rrt_star_marker.scale.x = 0.040;
+    rrt_star_marker.scale.x = 0.02;
     rrt_star_marker.scale.y = 0.015;
     rrt_star_marker.scale.z = 0.015;
 
