@@ -24,6 +24,7 @@ RRT::RRT(ros::NodeHandle &nh) : nh_(nh), gen((std::random_device())())
     nh_.getParam("rrt/tree_topic", tree_topic);
 
     nh_.getParam("rrt/rrt_steps", rrt_steps);
+    nh_.getParam("rrt/max_rrt_iterations", max_rrt_iterations);
     nh_.getParam("rrt/collision_accuracy", collision_accuracy);
     nh_.getParam("rrt/step_length", step_length);
     nh_.getParam("rrt/goal_threshold", goal_threshold);
@@ -86,8 +87,9 @@ void RRT::rrt_loop()
 
     int counter = 0;
     int counterS = 0;
+    int iteration =0;
     //end path finding after rrt_steps is reached
-    while (counter < rrt_steps)
+    while (counter < rrt_steps && iteration < max_rrt_iterations)
     {
         //generate random sample point
         std::vector<double> sampled_point = sample();
@@ -121,19 +123,24 @@ void RRT::rrt_loop()
             else
             {
                 tree.push_back(x_new);
-            }            
+            }  
+
+            //check if goal is reached
+            if (is_goal(x_new))
+            {
+                path.clear();          
+                path = find_path(tree, x_new);
+            }   
+            counter++;         
         }
-        //check if goal is reached
-        if (is_goal(x_new))
-        {
-            path.clear();          
-            path = find_path(tree, x_new);
-        }        
-        counter++;
+        iteration++;
+              
+        
 //DEBUG-------------------------------------------------------------------
         if (counter*100/rrt_steps != (counter+1)*100/rrt_steps){
-             ROS_INFO_STREAM("RRT Process :"<< counter*100/rrt_steps<<"%\n"
-                             "Percentage that sampled Point == q_goal: "<<counterS*100/counter<<"%");
+             ROS_INFO_STREAM("RRT Process:"<< counter*100/rrt_steps<<"%\n"
+                             "Percentage that sampled Point == q_goal: "<<counterS*100/iteration<<"%\n"
+                             <<"Iteration: "<<iteration);
         }
     }
     //calculate path if found
@@ -147,6 +154,8 @@ void RRT::rrt_loop()
     {
         ROS_INFO_STREAM("RRT has finished.\nNo path has been found!");
     }
+    ROS_INFO_STREAM("RRT finished on iteration: "<<iteration);
+
     
     rrt_tree_build = true;
 }
@@ -184,20 +193,21 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
     pose_theta = tf::getYaw(pose_msg->pose.orientation);
     
 
-    //prepare and publish path message
-    std_msgs::Float64MultiArray path_msg;
+    if(path.size()>0){
+        //prepare and publish path message
+        std_msgs::Float64MultiArray path_msg;
 
-    for (int i = 0; i < path.size(); i++)
-    {
+        for (int i = 0; i < path.size(); i++)
+        {
 
-        path_msg.data.push_back(path[i].x);
-        path_msg.data.push_back(path[i].y);
+            path_msg.data.push_back(path[i].x);
+           path_msg.data.push_back(path[i].y);
+        }
+        path_pub_.publish(path_msg);
+
+        //publish rrt tree
+        pub_tree(tree);
     }
-    path_pub_.publish(path_msg);
-
-    //publish rrt tree
-    pub_tree(tree);
-
 
 }
 

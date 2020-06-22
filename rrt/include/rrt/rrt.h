@@ -102,6 +102,7 @@ private:
     double step_length;
     double rrt_bias;
     int rrt_steps;
+    int max_rrt_iterations;
     double collision_accuracy;
     bool rrt_tree_build;
     std::string pose_topic, scan_topic, path_topic, clicked_point_topic, 

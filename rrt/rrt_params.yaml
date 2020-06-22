@@ -20,7 +20,8 @@ path_lines: "/path_lines"
 waypoint_marker: "/waypoint_marker"
 # Parameters for RRT
 collision_accuracy: 0.01
-rrt_steps: 50000
+rrt_steps: 1500
+max_rrt_iterations: 700000
 step_length: 0.14
 goal_threshold: 0.5
 buff_area: 4
