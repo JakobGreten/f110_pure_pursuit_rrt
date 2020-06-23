@@ -86,6 +86,140 @@ public:
         ackermann_msgs::AckermannDriveStamped drive_st_msg;
         ackermann_msgs::AckermannDrive drive_msg;
 
+        std::vector<double> track_node= getLookAheadPoint(target_l);
+
+        double track_node_x=track_node[0];
+        double track_node_y=track_node[1];
+
+        //actual look-ahead-distance, might differ from target_l
+        double l = distance(pose_x, pose_y, track_node_x, track_node_y);
+
+        //publish track node for debugging
+        publishSphere(track_node_x, track_node_y);
+        //publish look ahead distance
+        publishLine(pose_x, pose_y, track_node_x, track_node_y);
+
+        //current angle of car
+        double theta = tf::getYaw(pose_msg->pose.orientation);
+
+        //angle between orientation of car and target node
+        double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
+
+        //limit alpha in interval [-pi,pi]
+        if (alpha > M_PI)
+        {
+            alpha -= 2 * M_PI;
+        }
+        else if (alpha <= -M_PI)
+        {
+            alpha += 2 * M_PI;
+        }
+
+        vel = getVelocity(alpha);
+        
+
+        double curvature = 2 * sin(alpha) / l;
+        double omega = atan(curvature * wheelbase);
+
+        //Calculate radius and center of turning circle
+        double r = fabs(1 / curvature);
+
+        drawTurningCircle(r,omega, track_node_x, track_node_y);
+
+        //limit steering angle in correct interval
+        if(omega>0.4189){
+            omega = 0.4189;
+        }else if (omega<-0.4189){
+            omega = -0.4189;
+        }
+        
+        
+
+        //ROS_INFO_STREAM("Orientation: " << theta * 180 / M_PI << " Alpha: " << alpha * 180 / M_PI << " Omega: " << omega * 180 / M_PI);
+
+        //publish drive message with velocity and steering angle
+        drive_msg.speed = vel;
+        drive_msg.steering_angle = omega;
+        drive_st_msg.drive = drive_msg;
+        drive_pub.publish(drive_st_msg);
+    }
+
+    //  This method draws the calculated turning circle to visualize the controller behaviour.
+    //  Args:
+    //   r (double): radius of the circle
+    //   omega(double): steering angle of the car
+    //   track_node_x(double): look ahead point x
+    //   track_node_y(double): look ahead point y
+    void drawTurningCircle(double r, double omega, double track_node_x, double track_node_y){
+        //Calculate cooridnates of the center of circle with radius r, which lines up
+        //with both the pose of the car and the target point. This is only used for visualization.
+        double xa = 0.5 * (track_node_x - pose_x);
+        double ya = 0.5 * (track_node_y - pose_y);
+        double a = sqrt(xa * xa + ya * ya);
+        double b = sqrt(fabs(r * r - a * a));
+        double x0 = pose_x + xa;
+        double y0 = pose_y + ya;
+        double x_center;
+        double y_center;
+
+        //Turning circle can be on both sides of the trajectory.
+        //Picking the correct one based on steering angle
+        if (omega > 0)
+        {
+            x_center = x0 - b * ya / a;
+            y_center = y0 + b * xa / a;
+        }
+        else
+        {
+            x_center = x0 + b * ya / a;
+            y_center = y0 - b * xa / a;
+        }
+        //publish turning circle
+        publishCylinder(x_center, y_center, r * 2);
+    }
+
+    // This method calculates the target velocity of the car
+    // Args:
+    //   alpha (double): angle between car orientation and look ahead point
+    // Returns:
+    //   vel (std::vector<double> ) target velocity
+    double getVelocity(double alpha){
+        //stop the car if the goal is reached or if no path was found
+        if (goal_reached || path.size()==0)
+        {
+            vel = 0;
+        }
+        //Calculate new velocity
+        else
+        {   
+            //parameters for velocity. Determined through trial and error
+            double mult_factor = 6.0;
+            double add_factor = 0.9;
+
+            //velocity decreases quadratically to alpha
+            double mult_part = 0.6 - fabs(alpha) * mult_factor;
+
+            //make sure velocity is positive
+            if (mult_part > 0)
+            {
+                vel = mult_part + add_factor;
+            }
+            else
+            {
+                vel = add_factor;
+            }
+
+        }
+    }
+    
+    // This method calculates the look ahead point on the path which has 
+    // a distance of target_l from the car
+    // Args:
+    //   target_l (double): distance between target and car
+    // Returns:
+    //   track_node (std::vector<double> ) look ahead point
+    std::vector<double> getLookAheadPoint(double target_l){
+
         double prev_node_x;
         double prev_node_y;
         //difference from l from prev node
@@ -165,110 +299,18 @@ public:
         {
             //publishSphere(a_x, a_y);
             //publishSphere(b_x, b_y);
-            std::vector<double> target = trangulateTarget(a_x, a_y, b_x, b_y, pose_x, pose_y, target_l);
+            std::vector<double> target = triangulateTarget(a_x, a_y, b_x, b_y, pose_x, pose_y, target_l);
             track_node_x = target[0];
             track_node_y = target[1];
         }
 
-        //actual look-ahead-distance, might differ from target_l
-        double l = distance(pose_x, pose_y, track_node_x, track_node_y);
+        std::vector<double> track_node;
+        track_node.push_back(track_node_x);
+        track_node.push_back(track_node_y);
+        return track_node;
 
-        //publish track node for debugging
-        publishSphere(track_node_x, track_node_y);
-        //publish look ahead distance
-        publishLine(pose_x, pose_y, track_node_x, track_node_y);
 
-        //current angle of car
-        double theta = tf::getYaw(pose_msg->pose.orientation);
 
-        //angle between orientation of car and target node
-        double alpha = atan2((track_node_y - pose_y), (track_node_x - pose_x)) - theta;
-
-        //limit alpha in interval [-pi,pi]
-        if (alpha > M_PI)
-        {
-            alpha -= 2 * M_PI;
-        }
-        else if (alpha <= -M_PI)
-        {
-            alpha += 2 * M_PI;
-        }
-
-        //stop the car if the goal is reached or if no path was found
-        if (goal_reached || path.size()==0)
-        {
-            vel = 0;
-        }
-        //Calculate new velocity
-        else
-        {   
-            //parameters for velocity. Determined through trial and error
-            double mult_factor = 6.0;
-            double add_factor = 0.9;
-
-            //velocity decreases quadratically to alpha
-            double mult_part = 0.6 - fabs(alpha) * mult_factor;
-
-            //make sure velocity is positive
-            if (mult_part > 0)
-            {
-                vel = mult_part + add_factor;
-            }
-            else
-            {
-                vel = add_factor;
-            }
-
-        }
-        
-
-        double curvature = 2 * sin(alpha) / l;
-        double omega = atan(curvature * wheelbase);
-
-        //Calculate radius and center of turning circle
-        double r = fabs(1 / curvature);
-
-        //Calculate cooridnates of the center of circle with radius r, which lines up
-        //with both the pose of the car and the target point. This is only used for visualization.
-        double xa = 0.5 * (track_node_x - pose_x);
-        double ya = 0.5 * (track_node_y - pose_y);
-        double a = sqrt(xa * xa + ya * ya);
-        double b = sqrt(fabs(r * r - a * a));
-        double x0 = pose_x + xa;
-        double y0 = pose_y + ya;
-        double x_center;
-        double y_center;
-
-        //Turning circle can be on both sides of the trajectory.
-        //Picking the correct one based on steering angle
-        if (omega > 0)
-        {
-            x_center = x0 - b * ya / a;
-            y_center = y0 + b * xa / a;
-        }
-        else
-        {
-            x_center = x0 + b * ya / a;
-            y_center = y0 - b * xa / a;
-        }
-        //limit steering angle in correct interval
-        if(omega>0.4189){
-            omega = 0.4189;
-        }else if (omega<-0.4189){
-            omega = -0.4189;
-        }
-        //ROS_INFO_STREAM("xcenter: " << x_center << " ycenter" << y_center << "test" << r);
-        
-        //publish turning circle
-        publishCylinder(x_center, y_center, r * 2);
-
-        //ROS_INFO_STREAM("Orientation: " << theta * 180 / M_PI << " Alpha: " << alpha * 180 / M_PI << " Omega: " << omega * 180 / M_PI);
-
-        //publish drive message with velocity and steering angle
-        drive_msg.speed = vel;
-        drive_msg.steering_angle = omega;
-        drive_st_msg.drive = drive_msg;
-        drive_pub.publish(drive_st_msg);
     }
 
     // This method triangulates the target point between a and b, 
@@ -284,7 +326,7 @@ public:
     // Returns:
     //   target (std::vector<double> ) triangulated target point
 
-    std::vector<double> trangulateTarget(double a_x, double a_y, double b_x, double b_y, double c_x, double c_y, double l)
+    std::vector<double> triangulateTarget(double a_x, double a_y, double b_x, double b_y, double c_x, double c_y, double l)
     {
         //lengths of triangle
         double a = distance(c_x, c_y, b_x, b_y);
