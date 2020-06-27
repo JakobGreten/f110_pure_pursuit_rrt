@@ -1,11 +1,6 @@
-// ESE 680
-// RRT assignment
 // Author: Hongrui Zheng
+// modified by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn
 
-// This file contains the class definition of tree nodes and RRT
-// Before you start, please read: https://arxiv.org/pdf/1105.1186.pdf
-
-// ros
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -22,8 +17,6 @@
 #include <tf2/impl/utils.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-//#include "rrt/pose_2d.hpp"
-#include "rrt/distance_transform.hpp"
 // standard
 #include <math.h>
 #include <vector>
@@ -104,7 +97,7 @@ private:
     int rrt_steps;
     int max_rrt_iterations;
     double collision_accuracy;
-    bool rrt_tree_build;
+    bool rrt_tree_built;
     std::string pose_topic, scan_topic, path_topic, clicked_point_topic, 
                 map_topic, nav_goal_topic, marker_topic, tree_topic;
 
@@ -126,9 +119,9 @@ private:
 
 
     double distanceNodePoint(Node node, std::vector<double> &point);
-    void rrt_loop();
 
     // RRT methods
+    void rrt_loop();
     std::vector<double> sample();
     int nearest(std::vector<Node> &tree, std::vector<double> &sampled_point);
     Node steer(Node &nearest_node, std::vector<double> &sampled_point);
@@ -142,7 +135,10 @@ private:
     double line_cost(Node &n1, Node &n2);
     std::vector<int> near(std::vector<Node> &tree, Node &node);
 
+    //method for publishing
     void pub_tree(std::vector<Node> &tree);
+
+    // methods for the map and collision detection
     void map_callback(const nav_msgs::OccupancyGrid &msg);
     void xy_to_row_col(double x, double y, int *row, int *col) const;
     int row_col_to_cell(int row, int col) const;

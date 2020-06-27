@@ -1,3 +1,7 @@
+// This file is part of the 2019 skeleton code(https://github.com/mlab-upenn/f110-fall2019-skeletons) 
+// While the skeleton code provided an initial structure, the majority of the code 
+// was written by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn.
+
 // This class creates an rrt tree and calculates a trajectory to a given goal.
 #include "rrt/rrt.h"
 #include <random>
@@ -605,7 +609,7 @@ void RRT::map_callback(const nav_msgs::OccupancyGrid &msg)
     // Assign parameters
     origin_c = std::cos(origin.theta);
     origin_s = std::sin(origin.theta);
-
+    double free_threshold = 0.8;
     // Threshold the map
     dt = std::vector<double>(map.size());
     for (size_t i = 0; i < map.size(); i++)

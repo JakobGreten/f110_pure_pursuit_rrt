@@ -1,3 +1,5 @@
+# This file is part of the 2019 skeleton code(https://github.com/mlab-upenn/f110-fall2019-skeletons) 
+# It was modified by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn.
 # The distance between the front and
 # rear axle of the racecar
 wheelbase: 0.3302 # meters

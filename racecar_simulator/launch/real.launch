@@ -1,4 +1,6 @@
 <?xml version="1.0"?>
+<!--Author: Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn
+    based upon simulator.launch-->
 <launch>
   <!-- Listen to messages from joysicks -->
   <node pkg="joy" name="joy_node" type="joy_node"/>

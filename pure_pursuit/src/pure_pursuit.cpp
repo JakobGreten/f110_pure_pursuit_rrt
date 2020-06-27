@@ -1,3 +1,6 @@
+// This file is part of the 2019 skeleton code(https://github.com/mlab-upenn/f110-fall2019-skeletons) 
+// While the skeleton code provided an initial structure, the majority of the code 
+// was written by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn.
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/LaserScan.h>

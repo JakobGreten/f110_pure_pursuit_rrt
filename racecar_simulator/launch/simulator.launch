@@ -1,4 +1,7 @@
 <?xml version="1.0"?>
+<!--This file is part of the 2019 skeleton code(https://github.com/mlab-upenn/f110-fall2019-skeletons) 
+   It was modified by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn.-->
+
 <launch>
   <!-- Listen to messages from joysicks -->
   <param name="real" type="bool" value="false"/>

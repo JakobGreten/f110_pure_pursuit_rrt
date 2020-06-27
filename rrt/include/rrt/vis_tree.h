@@ -1,3 +1,6 @@
+// This file was copied from https://github.com/mlab-upenn/f110_rrt_skeleton
+// We made some changes to the visualization to allow for the distinction and display of both 
+// a normal rrt and a rrt* tree
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/ColorRGBA.h>

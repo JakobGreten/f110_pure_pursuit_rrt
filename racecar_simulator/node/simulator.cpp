@@ -1,3 +1,5 @@
+// This file is part of the 2019 skeleton code(https://github.com/mlab-upenn/f110-fall2019-skeletons) 
+// It was modified by Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn.
 #include <ros/ros.h>
 
 // interactive marker
