@@ -1,3 +1,5 @@
+// Authors: Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn
+
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 
