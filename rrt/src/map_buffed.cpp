@@ -1,26 +1,34 @@
+// Authors: Steffen Fleischmann, Jakob Greten, Kilian Poeschel and Joshua Bahn
+
 #include "rrt/map_buffed.h"
 
+// Destructor of the MAPBUFFED class
 MAPBUFFED::~MAPBUFFED() {
     ROS_INFO("MAP_BUFFED shutting down");
 }
 
+// Constructor of the MAPBUFFED class. Initiates subscribers, and publishers and loads parameters from file.
 MAPBUFFED::MAPBUFFED(ros::NodeHandle &nh) : nh_(nh) {
+    // Parameter
     nh_.getParam("rrt/map_topic", map_topic);
     nh_.getParam("rrt/map_buffed_topic", map_buffed_topic);
     nh_.getParam("rrt/buff_area", buff_area);
-    map_buffed_pub = nh_.advertise<nav_msgs::OccupancyGrid>(map_buffed_topic, 1, true);
 
-    ROS_INFO_STREAM("The map buffer started!");
+    // Publisher
+    map_buffed_pub = nh_.advertise<nav_msgs::OccupancyGrid>(map_buffed_topic, 1, true);
+    
+    // Subscriber
     map_sub = nh_.subscribe(map_topic, 1, &MAPBUFFED::map_callback, this);
 }
 
+// Takes the submitted occupancy grid and publishes it with enlarged occupied areas.
 void MAPBUFFED::map_callback(const nav_msgs::OccupancyGrid &msg) {
     nav_msgs::OccupancyGrid oGrid;
     std::vector<int8_t> map(msg.data.size());
     map = msg.data;
     ROS_INFO_STREAM("the area is: "<< buff_area );
 
-   // Every occupied pixel hast to be buffed.
+   // Every occupied pixel hast to be enlarged.
    // If it finds one, it makes all the pixel in an area around it also occupied.
     for(int num=0; num<msg.info.height*msg.info.width; num++){
         if (msg.data[num]==100){
@@ -48,5 +56,4 @@ void MAPBUFFED::map_callback(const nav_msgs::OccupancyGrid &msg) {
     oGrid.info.width = msg.info.width;
     
     map_buffed_pub.publish(oGrid);
-    ROS_INFO_STREAM("The map got buffed!");
 }
