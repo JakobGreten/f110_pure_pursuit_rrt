@@ -201,9 +201,10 @@ void RRT::pf_callback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg)
         }
         path_pub_.publish(path_msg);
 
-        //publish rrt tree
-        pub_tree(tree);
+        
     }
+    //publish rrt tree
+    pub_tree(tree);
 
 }
 
