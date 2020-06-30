@@ -118,7 +118,7 @@ public:
             alpha += 2 * M_PI;
         }
 
-        vel = getVelocity(alpha);
+        updateVelocity(alpha);
         
 
         double curvature = 2 * sin(alpha) / l;
@@ -186,7 +186,7 @@ public:
     //   alpha (double): angle between car orientation and look ahead point
     // Returns:
     //   vel (std::vector<double> ) target velocity
-    double getVelocity(double alpha){
+    void updateVelocity(double alpha){
         //stop the car if the goal is reached or if no path was found
         if (goal_reached || path.size()==0)
         {
