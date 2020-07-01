@@ -144,7 +144,7 @@ void RRT::rrt_loop()
         Node goalNode = path.front();
         path.clear();          
         path = find_path(tree, goalNode);
-        ROS_INFO_STREAM("RRT has finished.\nA path has been found!");
+        ROS_INFO_STREAM("RRT has finished.\nA path has been found!\nPress \"p\" for Pure Pursuit.");
     }else
     {
         ROS_INFO_STREAM("RRT has finished.\nNo path has been found!");
