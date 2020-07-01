@@ -15,11 +15,10 @@
   <!--<arg name="map" default="$(find racecar_simulator)/maps/stata_basement.yaml"/>-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/building_31.yaml"/>-->
   <!--<arg name="map" default="$(find racecar_simulator)/maps/labor.yaml"/>-->
-<<<<<<< HEAD
-  <arg name="map" default="$(find racecar_simulator)/maps/labyrinth.yaml"/>
-=======
+
+
   <arg name="map" default="$(find racecar_simulator)/maps/race.yaml"/>
->>>>>>> c98662735ef8c16291df74d5cec484fca496aa2a
+
 
 
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map)"/>
