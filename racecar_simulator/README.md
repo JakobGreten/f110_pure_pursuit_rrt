@@ -1,5 +1,5 @@
 ## This package is mostly unchanged from the original [2019-skeleton](https://github.com/mlab-upenn/f110-fall2019-skeletons).
-### We had to make some small changes to the simulator.cpp, created a launch file for launching on the f110 (real.launch) and changed a few parameters.
+### We had to make some small changes to the simulator.cpp, created a launch file for launching on the f110 (real.launch) and changed a few parameters. We also added some new maps of a labyrinth, a lab and a race track.
 ## Original README:
 <br/><br/>
 <br/><br/>

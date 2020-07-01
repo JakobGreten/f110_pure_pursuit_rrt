@@ -1,3 +1,6 @@
+# RRT* path planning and pure pusuit controller for the F1/10 platform
+### This project uses the [2019-skeleton-Code](https://github.com/mlab-upenn/f110-fall2019-skeletons) as a foundation. The build configuration and the simulation was mostly unchanged.
+
 ## Anleitung
 Um das Projekt auszuführen muss man nur das entsprechende Launch-File starten. Für den Start in der Simulation gibt es das Launch-File *simulator.launch* im Package *racecar\_simulator* und für den Start auf dem Auto gibt es *real.launch* im gleichen Package. Um auch weiterhin unsere Visualisierung der Algorithmen in Rviz zu sehen, kann man ein ROS-Netzwerk über mehrere Computer aufbauen. Dafür müssen auf dem Auto die *$ROS\_MASTER\_URI* und *$ROS\_IP* auf die IP des Autos gesetzt werden. Auf dem anderen Computer im gleichen Netzwerk muss dann entsprechend ebenfalls *$ROS\_MASTER\_URI* auf die IP des Autos gesetzt werden. Dann kann rviz auf diesem Computer mit der Konfigurationsdatei *simulator.rviz* (Package: *racecar\_simulator*) gestartet werden und sollte nun alle Topics und Visualisierungen wie gewohnt anzeigen.
 

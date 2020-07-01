@@ -25,6 +25,7 @@ private:
     ros::Publisher vis_pub;
 
     double max_speed, max_steering_angle, pose_x, pose_y, wheelbase, vel;
+    double target_l, vel_mult_factor, vel_add_factor, max_mult_speed;
     int sphere_marker_idx, cylinder_marker_idx, line_marker_idx;
     bool goal_reached = false;
     //rrt path
@@ -45,6 +46,11 @@ public:
         n.getParam("pure_pursuit_node/max_speed", max_speed);
         n.getParam("pure_pursuit_node/max_steering_angle", max_steering_angle);
         n.getParam("pure_pursuit_node/wheelbase", wheelbase);
+        n.getParam("pure_pursuit_node/target_l", target_l);
+        n.getParam("pure_pursuit_node/vel_mult_factor", vel_mult_factor);
+        n.getParam("pure_pursuit_node/vel_add_factor", vel_add_factor);
+        n.getParam("pure_pursuit_node/max_mult_speed", max_mult_speed);
+
 
         //differentiate between simualted and real launch
         bool real = false;
@@ -82,7 +88,7 @@ public:
         pose_y = pose_msg->pose.position.y;
 
         //target look-ahead-distance, might differ from l
-        double target_l = 1.0;
+        //double target_l = 1.0;
         //double target_l = vel/max_speed*1.4+0.9;
 
 
@@ -196,20 +202,20 @@ public:
         else
         {   
             //parameters for velocity. Determined through trial and error
-            double mult_factor = 6.0;
-            double add_factor = 0.9;
+            //double vel_mult_factor = 6.0;
+            //double vel_add_factor = 0.9;
 
             //velocity decreases quadratically to alpha
-            double mult_part = 0.6 - fabs(alpha) * mult_factor;
+            double mult_part = max_mult_speed - fabs(alpha) * vel_mult_factor;
 
             //make sure velocity is positive
             if (mult_part > 0)
             {
-                vel = mult_part + add_factor;
+                vel = mult_part + vel_add_factor;
             }
             else
             {
-                vel = add_factor;
+                vel = vel_add_factor;
             }
 
         }
@@ -245,7 +251,7 @@ public:
         double b_y = NAN;
 
         //check if goal is already reached
-        if(path.size()>0 && distance(pose_x,pose_y,path[0],path[1])<0.6){
+        if(path.size()>0 && distance(pose_x,pose_y,path[0],path[1])<0.75){
             goal_reached = true;
         }else{
             goal_reached = false;
